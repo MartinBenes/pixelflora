@@ -288,7 +288,17 @@
             </label>
         </div>
 
+        <div class="control-group">
+            <label>Pozadí canvasu</label>
+            <select id="canvas-bg">
+                <option value="transparent">Průhledné</option>
+                <option value="white">Bílé</option>
+                <option value="dark">Tmavé</option>
+            </select>
+        </div>
+
         <button id="btn-generate">Generovat Rostlinu</button>
+        <button id="btn-export-bw" class="secondary">Export B&W (PNG)</button>
         <button id="btn-export" class="secondary">Kopírovat Seed Kartu</button>
     </div>
 
@@ -522,10 +532,19 @@ function drawShadedRhombus(ctx, xc, yc, rx, ry, angle, palette, options = {}) {
  * === LOGIKA GENERÁTORU ===
  */
 
-function generatePlant(canvas, phenotype, seedStr, frame = 0) {
+function generatePlant(canvas, phenotype, seedStr, frame = 0, bgMode = 'transparent') {
     const startTime = performance.now();
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, CTX_WIDTH, CTX_HEIGHT);
+
+    // Draw background
+    if (bgMode === 'white') {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, CTX_WIDTH, CTX_HEIGHT);
+    } else if (bgMode === 'dark') {
+        ctx.fillStyle = '#1a1a1d';
+        ctx.fillRect(0, 0, CTX_WIDTH, CTX_HEIGHT);
+    }
 
     const plantData = { stemNodes: [], topX: 0, topY: 0 };
     const windPattern = [0, 1, 0, -1];
@@ -1055,7 +1074,8 @@ function getConfiguration() {
             glow: document.getElementById('gene-glow').checked
         },
         seed: document.getElementById('input-seed').value,
-        animate: document.getElementById('animate-toggle').checked
+        animate: document.getElementById('animate-toggle').checked,
+        bgMode: document.getElementById('canvas-bg').value
     };
 }
 
@@ -1094,7 +1114,10 @@ function update(isLoop = false) {
     }
 
     const canvas = document.getElementById('plantCanvas');
-    const time = generatePlant(canvas, config.phenotype, config.seed, currentFrame);
+    const time = generatePlant(canvas, config.phenotype, config.seed, currentFrame, config.bgMode);
+
+    // Adjust canvas style for background mode
+    canvas.style.background = config.bgMode === 'white' ? '#fff' : 'transparent';
     
     document.getElementById('seed-display').innerText = `Seed: ${config.seed}`;
     document.getElementById('time-display').innerText = `Render: ${time}ms | Frame: ${currentFrame}`;
@@ -1135,6 +1158,35 @@ async function copyTextToClipboard(text) {
         throw new Error('Clipboard copy failed');
     }
 }
+
+document.getElementById('btn-export-bw').addEventListener('click', () => {
+    const canvas = document.getElementById('plantCanvas');
+    const ctx = canvas.getContext('2d');
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    // Convert to grayscale (luminance) with white background
+    for (let i = 0; i < data.length; i += 4) {
+        const a = data[i + 3] / 255;
+        // Blend with white background
+        const r = data[i] * a + 255 * (1 - a);
+        const g = data[i + 1] * a + 255 * (1 - a);
+        const b = data[i + 2] * a + 255 * (1 - a);
+        const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+        data[i] = data[i + 1] = data[i + 2] = gray;
+        data[i + 3] = 255;
+    }
+    ctx.putImageData(imageData, 0, 0);
+
+    // Download as PNG
+    const link = document.createElement('a');
+    link.download = `plant-bw-${getConfiguration().seed}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+
+    // Re-render the color version
+    update(false);
+});
 
 document.getElementById('btn-export').addEventListener('click', async () => {
     try {
