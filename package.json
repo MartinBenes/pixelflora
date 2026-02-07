@@ -1,5 +1,5 @@
 {
-  "name": "genetix",
+  "name": "pixelflora",
   "version": "1.0.0",
   "description": "Procedural Plant Generator (Pixel Art)",
   "type": "module",
@@ -24,7 +24,7 @@
     "canvas",
     "plants"
   ],
-  "author": "Genetix contributors",
+  "author": "PixelFlora contributors",
   "license": "ISC",
   "engines": {
     "node": ">=20"
