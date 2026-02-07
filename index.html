@@ -439,8 +439,20 @@ function drawShadedCircle(ctx, xc, yc, r, palette) {
     }
 }
 
-// Shade helper: maps light dot product to palette color
+// Blend two hex colors: blendHex('#ff0000', '#0000ff', 0.3) => 30% toward blue
+function blendHex(base, overlay, t) {
+    const b = parseInt(base.slice(1), 16);
+    const o = parseInt(overlay.slice(1), 16);
+    const r = Math.round(((b >> 16) & 0xff) + (((o >> 16) & 0xff) - ((b >> 16) & 0xff)) * t);
+    const g = Math.round(((b >> 8) & 0xff) + (((o >> 8) & 0xff) - ((b >> 8) & 0xff)) * t);
+    const bl = Math.round((b & 0xff) + ((o & 0xff) - (b & 0xff)) * t);
+    return `#${((r << 16) | (g << 8) | bl).toString(16).padStart(6, '0')}`;
+}
+
+// Shade helper: maps light dot product to palette color with subtle blending
 function shadeColor(dot, d, palette) {
+    if (dot > 0.5 && d) return blendHex(palette.main, palette.light, 0.35);
+    if (dot < -0.5 && d) return blendHex(palette.main, palette.dark, 0.35);
     return palette.main;
 }
 
@@ -469,7 +481,7 @@ function drawShadedEllipse(ctx, xc, yc, rx, ry, angle, palette, options = {}) {
             const dot = -(nx * LIGHT_DIR.x + ny * LIGHT_DIR.y);
             const d = (Math.abs(Math.round(xc + x)) + Math.abs(Math.round(yc + y))) % 2 === 0;
             let color = shadeColor(dot, d, palette);
-            if (pattern === 'stripes' && Math.abs(Math.round(dx)) % 4 < 2)
+            if (pattern === 'stripes' && Math.abs(Math.round(dx)) % 8 < 2)
                 color = patternColor || palette.light;
             else if (pattern === 'dots' && Math.round(dx * dx + dy * dy) % 11 === 0)
                 color = patternColor || palette.light;
@@ -493,7 +505,7 @@ function drawShadedRhombus(ctx, xc, yc, rx, ry, angle, palette, options = {}) {
             const dot = -(nx * LIGHT_DIR.x + ny * LIGHT_DIR.y);
             const d = (Math.abs(Math.round(xc + x)) + Math.abs(Math.round(yc + y))) % 2 === 0;
             let color = shadeColor(dot, d, palette);
-            if (pattern === 'stripes' && Math.abs(Math.round(dx)) % 4 < 2)
+            if (pattern === 'stripes' && Math.abs(Math.round(dx)) % 8 < 2)
                 color = patternColor || palette.light;
             else if (pattern === 'dots' && Math.round(dx * dx + dy * dy) % 11 === 0)
                 color = patternColor || palette.light;
