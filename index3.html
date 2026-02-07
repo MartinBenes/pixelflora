@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Botanic Lab 3 (p5.js)</title>
+  <style>
+    :root {
+      --bg: #0b1411;
+      --panel: #15221d;
+      --line: #29443a;
+      --text: #e7f2eb;
+      --muted: #a2b8ae;
+      --accent: #6bd095;
+      --accent-2: #3ca874;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 18%, #143124 0%, transparent 32%),
+        radial-gradient(circle at 84% 10%, #1f3327 0%, transparent 30%),
+        radial-gradient(circle at 44% 92%, #15281f 0%, transparent 38%),
+        var(--bg);
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+    }
+
+    .app {
+      width: min(1360px, 100%);
+      display: grid;
+      grid-template-columns: minmax(300px, 360px) 1fr;
+      gap: 14px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: color-mix(in oklab, var(--panel) 92%, black 8%);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: calc(100vh - 32px);
+      overflow: auto;
+      box-shadow: 0 20px 52px rgba(0, 0, 0, 0.35);
+    }
+
+    .panel h1 {
+      margin: 0;
+      font-size: 1.08rem;
+      letter-spacing: 0.02em;
+    }
+
+    .panel p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.36;
+    }
+
+    .group {
+      border: 1px solid #2d4b40;
+      border-radius: 10px;
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+    }
+
+    .group-title {
+      margin: 0;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #b8f2d0;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .row3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    label {
+      display: grid;
+      gap: 4px;
+      color: #d4e8de;
+      font-size: 0.82rem;
+    }
+
+    input,
+    select,
+    button {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid #38564b;
+      background: #14211c;
+      color: var(--text);
+      padding: 8px;
+      font-size: 0.86rem;
+    }
+
+    input[type="range"] { padding: 0; }
+    input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+      accent-color: var(--accent);
+      transform: translateY(1px);
+    }
+
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.84rem;
+      color: #d8ece2;
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: 650;
+      transition: transform 0.12s ease, border-color 0.12s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      border-color: #78a88f;
+    }
+
+    .primary {
+      background: linear-gradient(180deg, var(--accent), var(--accent-2));
+      color: #072111;
+      border-color: #67c38c;
+    }
+
+    .secondary {
+      background: #263d33;
+      color: #daf3e5;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      overflow: hidden;
+      background: #0f1b16;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 660px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.44);
+    }
+
+    #p5-root {
+      width: min(95vw, 860px);
+      height: min(calc(95vw * 1.26), 1080px);
+      max-height: calc(100vh - 60px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #p5-root canvas {
+      width: 100% !important;
+      height: 100% !important;
+      border-radius: 12px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      display: block;
+    }
+
+    .hud {
+      position: absolute;
+      left: 12px;
+      top: 12px;
+      min-width: 210px;
+      background: rgba(12, 18, 15, 0.72);
+      border: 1px solid rgba(124, 170, 145, 0.34);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace;
+      font-size: 12px;
+      line-height: 1.35;
+      color: #d9ebe1;
+      white-space: pre;
+      pointer-events: none;
+      backdrop-filter: blur(4px);
+    }
+
+    .tiny {
+      color: #8ea79b;
+      font-size: 0.76rem;
+      line-height: 1.35;
+    }
+
+    body.preview-mode {
+      padding: 0;
+      background: #0f1b16;
+      display: block;
+    }
+
+    body.preview-mode .app {
+      width: 100%;
+      min-height: 100vh;
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+
+    body.preview-mode .panel {
+      display: none;
+    }
+
+    body.preview-mode .canvas-wrap {
+      min-height: 100vh;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    body.preview-mode #p5-root {
+      width: 100vw;
+      height: 100vh;
+      max-height: none;
+    }
+
+    body.preview-mode #p5-root canvas {
+      border-radius: 0;
+    }
+
+    body.preview-mode .hud {
+      display: none;
+    }
+
+    @media (max-width: 1020px) {
+      .app { grid-template-columns: 1fr; }
+      .panel { max-height: none; }
+      .canvas-wrap { min-height: 540px; }
+      #p5-root {
+        width: min(96vw, 620px);
+        height: min(calc(96vw * 1.26), 780px);
+      }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
+</head>
+<body>
+  <div class="app">
+    <aside class="panel">
+      <h1>Botanic Lab 3 (p5.js)</h1>
+      <p>
+        Nova verze s p5.js: proceduralni 2D rostliny s bohatym vetvenim, listy, kvety,
+        plody a plynulym vetrem.
+      </p>
+
+      <div class="group">
+        <h2 class="group-title">Seed a druh</h2>
+        <div class="row">
+          <label>
+            Seed
+            <input id="seed" type="text" value="p5-genetix-01" />
+          </label>
+          <label>
+            Species
+            <select id="species">
+              <option value="hybrid" selected>Hybrid</option>
+              <option value="orchid">Orchid</option>
+              <option value="rose">Rose</option>
+              <option value="bonsai">Bonsai</option>
+              <option value="wild">Wild</option>
+            </select>
+          </label>
+        </div>
+        <div class="row3">
+          <button id="btn-random" class="secondary">Random seed</button>
+          <button id="btn-mutate" class="secondary">Mutate</button>
+          <button id="btn-export" class="secondary">Export</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <h2 class="group-title">Growth</h2>
+        <div class="row">
+          <label>
+            Growth style
+            <select id="growthStyle">
+              <option value="upright">Upright</option>
+              <option value="branchy" selected>Branchy</option>
+              <option value="bushy">Bushy</option>
+              <option value="vine">Vine</option>
+            </select>
+          </label>
+          <label>
+            Complexity
+            <input id="complexity" type="range" min="0" max="100" value="52" />
+          </label>
+        </div>
+        <div class="row">
+          <label>
+            Branch density
+            <input id="branchDensity" type="range" min="0" max="100" value="42" />
+          </label>
+          <label>
+            Stem thickness
+            <input id="stemThickness" type="range" min="0" max="100" value="52" />
+          </label>
+        </div>
+        <div class="row">
+          <label>
+            Curvature
+            <input id="curvature" type="range" min="0" max="100" value="48" />
+          </label>
+          <label>
+            Wind
+            <input id="wind" type="range" min="0" max="100" value="46" />
+          </label>
+        </div>
+      </div>
+
+      <div class="group">
+        <h2 class="group-title">Leaves</h2>
+        <div class="row">
+          <label>
+            Leaf shape
+            <select id="leafShape">
+              <option value="oval" selected>Oval</option>
+              <option value="lance">Lance</option>
+              <option value="heart">Heart</option>
+            </select>
+          </label>
+          <label>
+            Leaf size
+            <input id="leafSize" type="range" min="0" max="100" value="50" />
+          </label>
+        </div>
+        <div class="row">
+          <label>
+            Leaf color
+            <select id="leafColor">
+              <option value="green" selected>Green</option>
+              <option value="mint">Mint</option>
+              <option value="teal">Teal</option>
+              <option value="autumn">Autumn</option>
+              <option value="dark">Dark</option>
+            </select>
+          </label>
+          <label>
+            Variegation
+            <input id="variegation" type="range" min="0" max="100" value="25" />
+          </label>
+        </div>
+        <div class="row">
+          <label class="check"><input id="serrated" type="checkbox" checked /> Serrated edge</label>
+          <label class="check"><input id="dew" type="checkbox" /> Dew droplets</label>
+        </div>
+      </div>
+
+      <div class="group">
+        <h2 class="group-title">Flowers and fruits</h2>
+        <div class="row">
+          <label>
+            Flower style
+            <select id="flowerStyle">
+              <option value="rosette">Rosette</option>
+              <option value="star">Star</option>
+              <option value="daisy" selected>Daisy</option>
+              <option value="bell">Bell</option>
+            </select>
+          </label>
+          <label>
+            Flower size
+            <input id="flowerSize" type="range" min="0" max="100" value="52" />
+          </label>
+        </div>
+        <div class="row">
+          <label>
+            Flower color A
+            <select id="flowerA">
+              <option value="rose" selected>Rose</option>
+              <option value="sun">Sun</option>
+              <option value="violet">Violet</option>
+              <option value="white">White</option>
+              <option value="crimson">Crimson</option>
+            </select>
+          </label>
+          <label>
+            Flower color B
+            <select id="flowerB">
+              <option value="peach" selected>Peach</option>
+              <option value="sun">Sun</option>
+              <option value="violet">Violet</option>
+              <option value="white">White</option>
+              <option value="crimson">Crimson</option>
+            </select>
+          </label>
+        </div>
+        <div class="row">
+          <label class="check"><input id="fruits" type="checkbox" /> Fruits</label>
+          <label>
+            Fruit style
+            <select id="fruitStyle">
+              <option value="berry" selected>Berry</option>
+              <option value="pear">Pear</option>
+              <option value="pod">Pod</option>
+            </select>
+          </label>
+        </div>
+        <div class="row">
+          <label class="check"><input id="glow" type="checkbox" /> Glow</label>
+          <label class="check"><input id="thorns" type="checkbox" /> Thorns</label>
+        </div>
+      </div>
+
+      <div class="group">
+        <h2 class="group-title">Animation</h2>
+        <div class="row">
+          <label class="check"><input id="animate" type="checkbox" checked /> Idle animation</label>
+          <label>
+            Speed
+            <input id="speed" type="range" min="0" max="100" value="45" />
+          </label>
+        </div>
+        <div class="row3">
+          <button id="btn-generate" class="primary">Generate</button>
+          <button id="btn-preset" class="secondary">Apply species</button>
+          <button id="btn-reset" class="secondary">Reset</button>
+        </div>
+        <div class="tiny">
+          Tech stack: p5.js. Deterministic seed + custom recursive generator.
+        </div>
+      </div>
+    </aside>
+
+    <main class="canvas-wrap">
+      <div id="p5-root"></div>
+      <div class="hud" id="hud">seed: --</div>
+    </main>
+  </div>
+
+  <script>
+    if (typeof p5 === "undefined") {
+      document.body.innerHTML = "<pre style='padding:16px;color:#fff;background:#000'>p5.js nebyl nacten. Otevri prosim index3.html online nebo pres lokalni server s pristupem na CDN.</pre>";
+      throw new Error("p5.js missing");
+    }
+
+    const TAU = Math.PI * 2;
+
+    class SeededRandom {
+      constructor(seedText) {
+        let h = 2166136261 >>> 0;
+        for (let i = 0; i < seedText.length; i++) {
+          h ^= seedText.charCodeAt(i);
+          h = Math.imul(h, 16777619);
+        }
+        this.state = h >>> 0;
+      }
+
+      next() {
+        let t = (this.state += 0x6d2b79f5);
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      }
+
+      float(min = 0, max = 1) {
+        return min + (max - min) * this.next();
+      }
+
+      int(min, max) {
+        return Math.floor(this.float(min, max + 1));
+      }
+
+      chance(probability) {
+        return this.next() < probability;
+      }
+
+      pick(items) {
+        return items[Math.floor(this.next() * items.length)];
+      }
+    }
+
+    const SPECIES_PRESETS = {
+      hybrid: {
+        growthStyle: "branchy",
+        complexity: 52,
+        branchDensity: 42,
+        stemThickness: 52,
+        curvature: 48,
+        wind: 46,
+        leafShape: "oval",
+        leafSize: 50,
+        leafColor: "green",
+        variegation: 25,
+        serrated: true,
+        dew: false,
+        flowerStyle: "daisy",
+        flowerSize: 52,
+        flowerA: "sun",
+        flowerB: "rose",
+        fruits: false,
+        fruitStyle: "berry",
+        glow: false,
+        thorns: false,
+        speed: 45,
+        animate: true
+      },
+      orchid: {
+        growthStyle: "upright",
+        complexity: 48,
+        branchDensity: 30,
+        stemThickness: 43,
+        curvature: 28,
+        wind: 52,
+        leafShape: "lance",
+        leafSize: 63,
+        leafColor: "teal",
+        variegation: 18,
+        serrated: false,
+        dew: true,
+        flowerStyle: "star",
+        flowerSize: 68,
+        flowerA: "violet",
+        flowerB: "white",
+        fruits: false,
+        fruitStyle: "pod",
+        glow: true,
+        thorns: false,
+        speed: 54,
+        animate: true
+      },
+      rose: {
+        growthStyle: "branchy",
+        complexity: 58,
+        branchDensity: 48,
+        stemThickness: 58,
+        curvature: 53,
+        wind: 36,
+        leafShape: "oval",
+        leafSize: 51,
+        leafColor: "green",
+        variegation: 12,
+        serrated: true,
+        dew: false,
+        flowerStyle: "rosette",
+        flowerSize: 74,
+        flowerA: "crimson",
+        flowerB: "rose",
+        fruits: true,
+        fruitStyle: "berry",
+        glow: false,
+        thorns: true,
+        speed: 40,
+        animate: true
+      },
+      bonsai: {
+        growthStyle: "bushy",
+        complexity: 68,
+        branchDensity: 60,
+        stemThickness: 48,
+        curvature: 72,
+        wind: 35,
+        leafShape: "oval",
+        leafSize: 42,
+        leafColor: "dark",
+        variegation: 8,
+        serrated: false,
+        dew: false,
+        flowerStyle: "bell",
+        flowerSize: 34,
+        flowerA: "peach",
+        flowerB: "white",
+        fruits: false,
+        fruitStyle: "pod",
+        glow: false,
+        thorns: false,
+        speed: 30,
+        animate: true
+      },
+      wild: {
+        growthStyle: "vine",
+        complexity: 64,
+        branchDensity: 56,
+        stemThickness: 44,
+        curvature: 68,
+        wind: 58,
+        leafShape: "heart",
+        leafSize: 62,
+        leafColor: "mint",
+        variegation: 34,
+        serrated: true,
+        dew: true,
+        flowerStyle: "daisy",
+        flowerSize: 62,
+        flowerA: "sun",
+        flowerB: "violet",
+        fruits: true,
+        fruitStyle: "pear",
+        glow: true,
+        thorns: true,
+        speed: 58,
+        animate: true
+      }
+    };
+
+    const GROWTH_PROFILES = {
+      upright: {
+        trunkMin: 1,
+        trunkMax: 2,
+        baseHeight: 0.44,
+        spread: 0.12,
+        branchScale: 0.78,
+        droop: 0.02,
+        depthBias: 1
+      },
+      branchy: {
+        trunkMin: 1,
+        trunkMax: 2,
+        baseHeight: 0.4,
+        spread: 0.2,
+        branchScale: 1,
+        droop: 0.05,
+        depthBias: 1
+      },
+      bushy: {
+        trunkMin: 2,
+        trunkMax: 4,
+        baseHeight: 0.32,
+        spread: 0.32,
+        branchScale: 1.26,
+        droop: 0.08,
+        depthBias: 1
+      },
+      vine: {
+        trunkMin: 1,
+        trunkMax: 2,
+        baseHeight: 0.36,
+        spread: 0.28,
+        branchScale: 1.16,
+        droop: 0.16,
+        depthBias: 2
+      }
+    };
+
+    const LEAF_PALETTES = {
+      green: { dark: [45, 100, 55], main: [78, 158, 88], light: [150, 210, 126], vein: [220, 247, 198] },
+      mint: { dark: [34, 102, 84], main: [66, 180, 148], light: [142, 238, 208], vein: [214, 255, 244] },
+      teal: { dark: [30, 82, 92], main: [51, 133, 146], light: [132, 201, 212], vein: [220, 246, 250] },
+      autumn: { dark: [130, 73, 32], main: [209, 128, 57], light: [240, 182, 111], vein: [255, 226, 188] },
+      dark: { dark: [34, 52, 43], main: [69, 97, 82], light: [125, 153, 139], vein: [204, 224, 214] }
+    };
+
+    const FLOWER_PALETTES = {
+      rose: { dark: [132, 37, 68], main: [214, 79, 123], light: [255, 163, 192], center: [255, 216, 117] },
+      peach: { dark: [179, 93, 67], main: [233, 140, 96], light: [255, 202, 167], center: [255, 232, 142] },
+      sun: { dark: [186, 118, 0], main: [247, 177, 0], light: [255, 227, 120], center: [118, 71, 0] },
+      violet: { dark: [90, 65, 158], main: [140, 104, 218], light: [204, 177, 255], center: [248, 217, 124] },
+      white: { dark: [171, 185, 203], main: [232, 238, 246], light: [255, 255, 255], center: [247, 214, 122] },
+      crimson: { dark: [119, 18, 40], main: [198, 42, 73], light: [255, 141, 165], center: [255, 208, 133] }
+    };
+
+    const FRUIT_PALETTES = {
+      berry: { dark: [74, 20, 91], main: [128, 44, 168], light: [196, 136, 227] },
+      pear: { dark: [78, 110, 26], main: [132, 179, 54], light: [206, 230, 140] },
+      pod: { dark: [112, 82, 28], main: [172, 130, 53], light: [223, 192, 127] }
+    };
+
+    const ui = {
+      seed: document.getElementById("seed"),
+      species: document.getElementById("species"),
+      growthStyle: document.getElementById("growthStyle"),
+      complexity: document.getElementById("complexity"),
+      branchDensity: document.getElementById("branchDensity"),
+      stemThickness: document.getElementById("stemThickness"),
+      curvature: document.getElementById("curvature"),
+      wind: document.getElementById("wind"),
+      leafShape: document.getElementById("leafShape"),
+      leafSize: document.getElementById("leafSize"),
+      leafColor: document.getElementById("leafColor"),
+      variegation: document.getElementById("variegation"),
+      serrated: document.getElementById("serrated"),
+      dew: document.getElementById("dew"),
+      flowerStyle: document.getElementById("flowerStyle"),
+      flowerSize: document.getElementById("flowerSize"),
+      flowerA: document.getElementById("flowerA"),
+      flowerB: document.getElementById("flowerB"),
+      fruits: document.getElementById("fruits"),
+      fruitStyle: document.getElementById("fruitStyle"),
+      glow: document.getElementById("glow"),
+      thorns: document.getElementById("thorns"),
+      animate: document.getElementById("animate"),
+      speed: document.getElementById("speed"),
+      btnGenerate: document.getElementById("btn-generate"),
+      btnRandom: document.getElementById("btn-random"),
+      btnMutate: document.getElementById("btn-mutate"),
+      btnExport: document.getElementById("btn-export"),
+      btnPreset: document.getElementById("btn-preset"),
+      btnReset: document.getElementById("btn-reset"),
+      hud: document.getElementById("hud")
+    };
+
+    const queryParams = new URLSearchParams(window.location.search);
+    const PREVIEW_MODE = ["1", "true", "yes"].includes((queryParams.get("preview") || "").toLowerCase());
+    if (PREVIEW_MODE) {
+      document.body.classList.add("preview-mode");
+    }
+
+    const DEFAULT_VIEW_FLAGS = {
+      showPot: true,
+      showStems: true,
+      showLeaves: true,
+      showFlowers: true,
+      showFruits: true,
+      showThorns: true,
+      showDew: true
+    };
+
+    const appState = {
+      config: null,
+      model: null,
+      seed: "",
+      time: 0,
+      renderMs: 0,
+      viewFlags: { ...DEFAULT_VIEW_FLAGS }
+    };
+
+    function clamp(v, min, max) {
+      return Math.max(min, Math.min(max, v));
+    }
+
+    function map01(v) {
+      return clamp(v / 100, 0, 1);
+    }
+
+    function mix(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function randomSeed() {
+      return `${Math.random().toString(36).slice(2, 8)}-${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+    function colorFrom(arr, alpha = 255) {
+      return [...arr, alpha];
+    }
+
+    function copyToClipboard(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+      }
+      return new Promise((resolve, reject) => {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "absolute";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        if (ok) resolve();
+        else reject(new Error("clipboard failed"));
+      });
+    }
+
+    const QUERY_CONTROL_TYPES = {
+      seed: "text",
+      species: "select",
+      growthStyle: "select",
+      complexity: "range",
+      branchDensity: "range",
+      stemThickness: "range",
+      curvature: "range",
+      wind: "range",
+      leafShape: "select",
+      leafSize: "range",
+      leafColor: "select",
+      variegation: "range",
+      serrated: "bool",
+      dew: "bool",
+      flowerStyle: "select",
+      flowerSize: "range",
+      flowerA: "select",
+      flowerB: "select",
+      fruits: "bool",
+      fruitStyle: "select",
+      glow: "bool",
+      thorns: "bool",
+      animate: "bool",
+      speed: "range"
+    };
+
+    function parseBoolParam(rawValue) {
+      const normalized = (rawValue || "").trim().toLowerCase();
+      return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
+    }
+
+    function readViewFlagsFromQuery(params) {
+      const flags = { ...DEFAULT_VIEW_FLAGS };
+      for (const key of Object.keys(flags)) {
+        if (params.has(key)) {
+          flags[key] = parseBoolParam(params.get(key));
+        }
+      }
+      return flags;
+    }
+
+    function applyQueryOverrides(params) {
+      let hasOverride = false;
+      for (const [key, type] of Object.entries(QUERY_CONTROL_TYPES)) {
+        if (!params.has(key)) continue;
+        const element = ui[key];
+        if (!element) continue;
+        const raw = params.get(key);
+        hasOverride = true;
+
+        if (type === "bool" && element instanceof HTMLInputElement) {
+          element.checked = parseBoolParam(raw);
+          continue;
+        }
+
+        if (type === "range" && element instanceof HTMLInputElement) {
+          const numeric = Number(raw);
+          if (Number.isFinite(numeric)) {
+            element.value = String(clamp(Math.round(numeric), 0, 100));
+          }
+          continue;
+        }
+
+        if (type === "select" && element instanceof HTMLSelectElement) {
+          if ([...element.options].some((option) => option.value === raw)) {
+            element.value = raw;
+          }
+          continue;
+        }
+
+        element.value = raw || "";
+      }
+      return hasOverride;
+    }
+
+    function readConfig() {
+      return {
+        seed: ui.seed.value.trim() || "p5-seed",
+        species: ui.species.value,
+        growthStyle: ui.growthStyle.value,
+        complexity: Number(ui.complexity.value),
+        branchDensity: Number(ui.branchDensity.value),
+        stemThickness: Number(ui.stemThickness.value),
+        curvature: Number(ui.curvature.value),
+        wind: Number(ui.wind.value),
+        leafShape: ui.leafShape.value,
+        leafSize: Number(ui.leafSize.value),
+        leafColor: ui.leafColor.value,
+        variegation: Number(ui.variegation.value),
+        serrated: ui.serrated.checked,
+        dew: ui.dew.checked,
+        flowerStyle: ui.flowerStyle.value,
+        flowerSize: Number(ui.flowerSize.value),
+        flowerA: ui.flowerA.value,
+        flowerB: ui.flowerB.value,
+        fruits: ui.fruits.checked,
+        fruitStyle: ui.fruitStyle.value,
+        glow: ui.glow.checked,
+        thorns: ui.thorns.checked,
+        animate: ui.animate.checked,
+        speed: Number(ui.speed.value)
+      };
+    }
+
+    function applyPreset(species, keepSeed = true) {
+      const p = SPECIES_PRESETS[species] || SPECIES_PRESETS.hybrid;
+      ui.growthStyle.value = p.growthStyle;
+      ui.complexity.value = String(p.complexity);
+      ui.branchDensity.value = String(p.branchDensity);
+      ui.stemThickness.value = String(p.stemThickness);
+      ui.curvature.value = String(p.curvature);
+      ui.wind.value = String(p.wind);
+      ui.leafShape.value = p.leafShape;
+      ui.leafSize.value = String(p.leafSize);
+      ui.leafColor.value = p.leafColor;
+      ui.variegation.value = String(p.variegation);
+      ui.serrated.checked = Boolean(p.serrated);
+      ui.dew.checked = Boolean(p.dew);
+      ui.flowerStyle.value = p.flowerStyle;
+      ui.flowerSize.value = String(p.flowerSize);
+      ui.flowerA.value = p.flowerA;
+      ui.flowerB.value = p.flowerB;
+      ui.fruits.checked = Boolean(p.fruits);
+      ui.fruitStyle.value = p.fruitStyle;
+      ui.glow.checked = Boolean(p.glow);
+      ui.thorns.checked = Boolean(p.thorns);
+      ui.speed.value = String(p.speed);
+      ui.animate.checked = Boolean(p.animate);
+      if (!keepSeed) ui.seed.value = randomSeed();
+    }
+
+    function mutateControls() {
+      const jitter = (el, amount) => {
+        const v = Number(el.value);
+        const delta = Math.round((Math.random() * 2 - 1) * amount);
+        el.value = String(clamp(v + delta, 0, 100));
+      };
+
+      jitter(ui.complexity, 12);
+      jitter(ui.branchDensity, 14);
+      jitter(ui.stemThickness, 12);
+      jitter(ui.curvature, 16);
+      jitter(ui.wind, 18);
+      jitter(ui.leafSize, 15);
+      jitter(ui.variegation, 24);
+      jitter(ui.flowerSize, 16);
+      jitter(ui.speed, 15);
+      ui.seed.value = randomSeed();
+    }
+
+    function snap(v) {
+      return Math.round(v);
+    }
+
+    function drawPxCircle(p, cx, cy, r, col, alpha = 255) {
+      const rr = Math.max(1, snap(r));
+      p.fill(...colorFrom(col, alpha));
+      for (let y = -rr; y <= rr; y++) {
+        for (let x = -rr; x <= rr; x++) {
+          if ((x * x) + (y * y) <= rr * rr) {
+            p.rect(cx + x, cy + y, 1, 1);
+          }
+        }
+      }
+    }
+
+    function drawPxEllipse(p, cx, cy, rx, ry, col, alpha = 255) {
+      const arx = Math.max(1, snap(rx));
+      const ary = Math.max(1, snap(ry));
+      p.fill(...colorFrom(col, alpha));
+      for (let y = -ary; y <= ary; y++) {
+        for (let x = -arx; x <= arx; x++) {
+          const d = (x * x) / (arx * arx) + (y * y) / (ary * ary);
+          if (d <= 1) {
+            p.rect(cx + x, cy + y, 1, 1);
+          }
+        }
+      }
+    }
+
+    function drawPxDiamond(p, cx, cy, rx, ry, col, alpha = 255) {
+      const arx = Math.max(1, snap(rx));
+      const ary = Math.max(1, snap(ry));
+      p.fill(...colorFrom(col, alpha));
+      for (let y = -ary; y <= ary; y++) {
+        for (let x = -arx; x <= arx; x++) {
+          const d = Math.abs(x) / arx + Math.abs(y) / ary;
+          if (d <= 1) {
+            p.rect(cx + x, cy + y, 1, 1);
+          }
+        }
+      }
+    }
+
+    function drawPxLine(p, x0, y0, x1, y1, width, col, alpha = 255) {
+      let ax = snap(x0);
+      let ay = snap(y0);
+      const bx = snap(x1);
+      const by = snap(y1);
+      const dx = Math.abs(bx - ax);
+      const dy = Math.abs(by - ay);
+      const sx = ax < bx ? 1 : -1;
+      const sy = ay < by ? 1 : -1;
+      let err = dx - dy;
+      const half = Math.max(0, Math.floor(width / 2));
+
+      p.fill(...colorFrom(col, alpha));
+      while (true) {
+        for (let ox = -half; ox <= half; ox++) {
+          for (let oy = -half; oy <= half; oy++) {
+            p.rect(ax + ox, ay + oy, 1, 1);
+          }
+        }
+        if (ax === bx && ay === by) break;
+        const e2 = 2 * err;
+        if (e2 > -dy) {
+          err -= dy;
+          ax += sx;
+        }
+        if (e2 < dx) {
+          err += dx;
+          ay += sy;
+        }
+      }
+    }
+
+    function pointOnPolyline(points, t) {
+      if (!points.length) return { x: 0, y: 0 };
+      if (points.length === 1) return points[0];
+      const clamped = clamp(t, 0, 0.9999);
+      const scaled = clamped * (points.length - 1);
+      const idx = Math.floor(scaled);
+      const local = scaled - idx;
+      const p0 = points[idx];
+      const p1 = points[Math.min(points.length - 1, idx + 1)];
+      return { x: mix(p0.x, p1.x, local), y: mix(p0.y, p1.y, local) };
+    }
+
+    function buildModel(p, config, width, height) {
+      const rng = new SeededRandom(`${config.seed}|${config.species}|${config.growthStyle}`);
+      const complexity = map01(config.complexity);
+      const branchDensity = map01(config.branchDensity);
+      const thickness = map01(config.stemThickness);
+      const curvature = map01(config.curvature);
+      const wind = map01(config.wind);
+      const leafSize = map01(config.leafSize);
+      const flowerSize = map01(config.flowerSize);
+      const centerX = snap(width * 0.5);
+
+      const leafPalette = LEAF_PALETTES[config.leafColor] || LEAF_PALETTES.green;
+      const fruitPalette = FRUIT_PALETTES[config.fruitStyle] || FRUIT_PALETTES.berry;
+
+      const bloomPaletteSet = [
+        { petal: [247, 198, 118], dark: [227, 157, 79], light: [255, 226, 170], center: [248, 240, 226], core: [236, 162, 94] },
+        { petal: [222, 82, 82], dark: [172, 44, 44], light: [246, 162, 150], center: [248, 236, 231], core: [220, 72, 72] },
+        { petal: [206, 126, 168], dark: [152, 80, 120], light: [238, 186, 214], center: [248, 236, 244], core: [191, 114, 152] },
+        { petal: [170, 162, 223], dark: [121, 114, 182], light: [212, 206, 246], center: [244, 241, 255], core: [151, 143, 210] },
+        { petal: [246, 206, 119], dark: [214, 146, 72], light: [255, 233, 173], center: [248, 239, 218], core: [232, 171, 104] }
+      ];
+
+      const keyToPaletteIndex = { rose: 2, peach: 0, sun: 4, violet: 3, white: 3, crimson: 1 };
+      const favoriteIndices = [
+        keyToPaletteIndex[config.flowerA] ?? 0,
+        keyToPaletteIndex[config.flowerB] ?? 4
+      ];
+
+      const vase = {
+        cx: centerX,
+        topY: height - 44,
+        shadowY: height - 2
+      };
+
+      const bouquetBaseY = vase.topY - 6;
+      const bouquetTopY = snap(mix(58, 34, complexity));
+      const stemCount = clamp(snap(mix(8, 16, complexity) + mix(0, 7, branchDensity)), 7, 22);
+      const spreadX = mix(18, 34, branchDensity);
+
+      const stems = [];
+      for (let i = 0; i < stemCount; i++) {
+        const fan = stemCount === 1 ? 0 : (i - (stemCount - 1) / 2) / ((stemCount - 1) / 2);
+        const startX = centerX + rng.int(-6, 6);
+        const startY = bouquetBaseY + rng.int(-1, 2);
+        const tipX = snap(centerX + fan * spreadX + rng.int(-6, 6));
+        const tipY = rng.int(bouquetTopY, bouquetBaseY - 22);
+        const midX = snap(mix(startX, tipX, 0.52) + fan * 4 + rng.int(-4, 4));
+        const midY = snap(mix(startY, tipY, 0.52) + rng.int(-4, 3));
+        stems.push({
+          points: [{ x: startX, y: startY }, { x: midX, y: midY }, { x: tipX, y: tipY }],
+          width: clamp(snap(mix(1, 3, thickness) - rng.float(0, 1)), 1, 3),
+          swayAmp: mix(0.4, 3.4, wind) * rng.float(0.7, 1.2),
+          swayFreq: rng.float(0.9, 1.8),
+          phase: rng.float(0, TAU)
+        });
+      }
+
+      const flowers = [];
+      const addFlower = (x, y, scale = 1) => {
+        const idx = rng.chance(0.72) ? rng.pick(favoriteIndices) : rng.int(0, bloomPaletteSet.length - 1);
+        const palette = bloomPaletteSet[idx];
+        const petals = clamp(rng.int(4, 6), 4, 6);
+        const size = mix(3, 6.4, flowerSize) * scale * rng.float(0.85, 1.2);
+        flowers.push({
+          x: snap(x),
+          y: snap(y),
+          petals,
+          radius: size,
+          spread: size + rng.float(1, 2.2),
+          palette,
+          rot: rng.float(0, TAU),
+          swayAmp: rng.float(0.3, 1.9),
+          swayFreq: rng.float(1.0, 2.0),
+          phase: rng.float(0, TAU)
+        });
+      };
+
+      for (let i = 0; i < stems.length; i++) {
+        const s = stems[i];
+        const tip = s.points[s.points.length - 1];
+        if (rng.chance(0.72 + complexity * 0.16)) {
+          addFlower(tip.x + rng.int(-1, 1), tip.y + rng.int(-1, 1), rng.float(0.85, 1.2));
+        }
+        if (rng.chance(0.35 + branchDensity * 0.3)) {
+          const t = rng.float(0.45, 0.82);
+          const a = pointOnPolyline(s.points, t);
+          const side = rng.chance(0.5) ? -1 : 1;
+          addFlower(a.x + side * rng.int(2, 6), a.y + rng.int(-4, 2), rng.float(0.72, 0.98));
+        }
+      }
+
+      const leaves = [];
+      const leafCount = clamp(snap(mix(16, 40, branchDensity) + mix(0, 10, complexity)), 14, 52);
+      for (let i = 0; i < leafCount; i++) {
+        const sIdx = rng.int(0, stems.length - 1);
+        const s = stems[sIdx];
+        const t = rng.float(0.25, 0.95);
+        const a = pointOnPolyline(s.points, t);
+        const side = rng.chance(0.5) ? -1 : 1;
+        const size = mix(3.6, 8.4, leafSize) * rng.float(0.75, 1.25);
+        leaves.push({
+          ax: a.x,
+          ay: a.y,
+          x: a.x + side * rng.float(3, 10),
+          y: a.y + rng.float(-2, 3),
+          side,
+          rx: size * (config.leafShape === "lance" ? 1.6 : 1.4),
+          ry: size * (config.leafShape === "heart" ? 1.1 : 0.9),
+          swayAmp: rng.float(0.2, 1.4),
+          swayFreq: rng.float(1.0, 2.2),
+          phase: rng.float(0, TAU)
+        });
+      }
+
+      const fruits = [];
+      if (config.fruits) {
+        const count = rng.int(2, 6);
+        for (let i = 0; i < count; i++) {
+          const s = rng.pick(stems);
+          const a = pointOnPolyline(s.points, rng.float(0.45, 0.92));
+          const side = rng.chance(0.5) ? -1 : 1;
+          fruits.push({
+            x: a.x + side * rng.float(2, 7),
+            y: a.y + rng.float(-2, 2),
+            r: rng.float(1.8, 3.8),
+            phase: rng.float(0, TAU)
+          });
+        }
+      }
+
+      const thorns = [];
+      if (config.thorns) {
+        const count = rng.int(5, 12);
+        for (let i = 0; i < count; i++) {
+          const s = rng.pick(stems);
+          const a = pointOnPolyline(s.points, rng.float(0.25, 0.95));
+          const side = rng.chance(0.5) ? -1 : 1;
+          const len = rng.float(1.8, 4.2);
+          thorns.push({
+            x: a.x,
+            y: a.y,
+            tx: a.x + side * len,
+            ty: a.y - len * 0.5
+          });
+        }
+      }
+
+      const dew = [];
+      if (config.dew && leaves.length) {
+        const count = rng.int(2, 10);
+        for (let i = 0; i < count; i++) {
+          const leaf = rng.pick(leaves);
+          dew.push({
+            x: leaf.x + leaf.side * rng.float(0, leaf.rx * 0.45),
+            y: leaf.y + rng.float(-leaf.ry * 0.2, leaf.ry * 0.25),
+            r: rng.float(0.8, 1.8),
+            phase: rng.float(0, TAU)
+          });
+        }
+      }
+
+      return {
+        width,
+        height,
+        vase,
+        stems,
+        branches: stems.map((s) => ({ points: s.points })),
+        flowers,
+        flower: flowers[0] || null,
+        leaves,
+        fruits,
+        thorns,
+        dew,
+        palette: {
+          leaf: leafPalette,
+          fruit: fruitPalette
+        }
+      };
+    }
+
+    function rebuildModel(p) {
+      appState.config = readConfig();
+      appState.seed = appState.config.seed;
+      appState.model = buildModel(p, appState.config, p.width, p.height);
+    }
+
+    function getStemAnimatedPoints(stem, time, wind) {
+      const count = stem.points.length - 1;
+      return stem.points.map((pt, idx) => {
+        const t = count <= 0 ? 0 : idx / count;
+        const sway = Math.sin(time * stem.swayFreq + stem.phase + t * 1.1) * stem.swayAmp * wind * t;
+        return { x: snap(pt.x + sway), y: snap(pt.y) };
+      });
+    }
+
+    function drawBackground(p, model) {
+      p.noStroke();
+      p.background(210, 215, 217);
+      drawPxEllipse(p, model.vase.cx, model.vase.shadowY, 26, 2, [146, 146, 132], 85);
+    }
+
+    function drawPot(p, model) {
+      const { cx, topY } = model.vase;
+      const light = [236, 223, 236];
+      const main = [204, 179, 207];
+      const dark = [134, 104, 146];
+      const edge = [96, 73, 110];
+
+      const drawRow = (y, halfW) => {
+        const w = Math.max(1, halfW);
+        for (let x = -w; x <= w; x++) {
+          const n = Math.abs(x) / w;
+          let c = main;
+          if (n < 0.24) c = light;
+          if (n > 0.72) c = dark;
+          if (Math.abs(x) === w) c = edge;
+          p.fill(...colorFrom(c));
+          p.rect(cx + x, y, 1, 1);
+        }
+      };
+
+      for (let y = topY; y <= topY + 22; y++) {
+        const t = (y - topY) / 22;
+        const w = snap(mix(19, 13, t) + Math.sin(t * Math.PI) * 6);
+        drawRow(y, w);
+      }
+
+      for (let y = topY + 23; y <= topY + 33; y++) {
+        const t = (y - (topY + 23)) / 10;
+        drawRow(y, snap(mix(7, 3, t)));
+      }
+
+      for (let y = topY + 34; y <= topY + 46; y++) {
+        const t = (y - (topY + 34)) / 12;
+        drawRow(y, snap(mix(4, 11, t)));
+      }
+
+      for (let y = topY + 47; y <= topY + 51; y++) {
+        const t = (y - (topY + 47)) / 4;
+        drawRow(y, snap(mix(11, 15, t)));
+      }
+
+      drawRow(topY - 1, 20);
+      drawRow(topY, 20);
+    }
+
+    function drawBranches(p, model, config, time) {
+      const wind = map01(config.wind);
+      const dark = [25, 88, 57];
+      const main = [53, 159, 102];
+      const highlight = [106, 191, 143];
+
+      for (const stem of model.stems) {
+        const pts = getStemAnimatedPoints(stem, time, wind);
+        for (let i = 0; i < pts.length - 1; i++) {
+          const a = pts[i];
+          const b = pts[i + 1];
+          drawPxLine(p, a.x + 1, a.y + 1, b.x + 1, b.y + 1, stem.width, dark, 190);
+          drawPxLine(p, a.x, a.y, b.x, b.y, stem.width, main, 255);
+          drawPxLine(p, a.x - 1, a.y, b.x - 1, b.y, 1, highlight, 160);
+        }
+      }
+    }
+
+    function drawLeaves(p, model, config, time) {
+      const wind = map01(config.wind);
+      const pal = model.palette.leaf;
+      for (const leaf of model.leaves) {
+        const sway = Math.sin(time * leaf.swayFreq + leaf.phase) * leaf.swayAmp * wind;
+        const cx = snap(leaf.x + sway);
+        const cy = snap(leaf.y);
+        const ax = snap(leaf.ax + sway * 0.45);
+        const ay = snap(leaf.ay);
+        const rx = Math.max(3, snap(leaf.rx));
+        const ry = Math.max(2, snap(leaf.ry));
+
+        drawPxLine(p, ax, ay, cx, cy, 1, [60, 120, 86], 200);
+        drawPxDiamond(p, cx + 1, cy + 1, rx, ry, pal.dark);
+        drawPxDiamond(p, cx, cy, rx, ry, pal.main);
+        drawPxDiamond(p, cx - leaf.side, cy - 1, Math.max(2, rx - 3), Math.max(2, ry - 2), pal.light, 180);
+        drawPxLine(p, cx - leaf.side * (rx * 0.65), cy, cx + leaf.side * (rx * 0.65), cy, 1, pal.vein, 120);
+      }
+    }
+
+    function drawThorns(p, model, config, time) {
+      if (!config.thorns || !model.thorns.length) return;
+      for (const th of model.thorns) {
+        drawPxLine(p, th.x, th.y, th.tx, th.ty, 1, [92, 44, 42], 230);
+      }
+    }
+
+    function drawFruits(p, model, config, time) {
+      if (!config.fruits) return;
+      const wind = map01(config.wind);
+      const pal = model.palette.fruit;
+
+      for (const fr of model.fruits) {
+        const sway = Math.sin(time * 1.4 + fr.phase) * (1.8 * wind);
+        const x = snap(fr.x + sway);
+        const y = snap(fr.y);
+        if (config.fruitStyle === "pod") {
+          drawPxEllipse(p, x, y, fr.r * 1.5, fr.r * 0.72, pal.main);
+          drawPxLine(p, x - fr.r, y, x + fr.r, y, 1, pal.dark, 200);
+        } else if (config.fruitStyle === "pear") {
+          drawPxEllipse(p, x, y + 1, fr.r * 1.1, fr.r * 1.2, pal.main);
+          drawPxCircle(p, x, y - fr.r * 0.75, fr.r * 0.68, pal.main);
+        } else {
+          drawPxCircle(p, x, y, fr.r, pal.main);
+        }
+        drawPxCircle(p, x - 1, y - 1, Math.max(1, fr.r * 0.35), pal.light, 180);
+      }
+    }
+
+    function drawFlowers(p, model, config, time) {
+      const wind = map01(config.wind);
+      const ordered = [...model.flowers].sort((a, b) => a.y - b.y);
+      for (const fl of ordered) {
+        const sway = Math.sin(time * fl.swayFreq + fl.phase) * fl.swayAmp * wind;
+        const cx = snap(fl.x + sway);
+        const cy = snap(fl.y);
+        for (let i = 0; i < fl.petals; i++) {
+          const ang = fl.rot + (i / fl.petals) * TAU;
+          const px = snap(cx + Math.cos(ang) * fl.spread);
+          const py = snap(cy + Math.sin(ang) * fl.spread);
+          drawPxCircle(p, px + 1, py + 1, fl.radius * 0.9, fl.palette.dark, 220);
+          if (config.flowerStyle === "star") {
+            drawPxDiamond(p, px, py, fl.radius * 0.9, fl.radius * 0.9, fl.palette.petal);
+          } else {
+            drawPxCircle(p, px, py, fl.radius, fl.palette.petal);
+          }
+          drawPxCircle(p, px - 1, py - 1, Math.max(1, fl.radius * 0.35), fl.palette.light, 160);
+        }
+
+        drawPxCircle(p, cx + 1, cy + 1, Math.max(1.2, fl.radius * 0.78), fl.palette.core, 220);
+        drawPxCircle(p, cx, cy, Math.max(1.2, fl.radius * 0.72), fl.palette.center, 220);
+        p.fill(...colorFrom(fl.palette.core, 190));
+        p.rect(cx - 1, cy, 3, 1);
+        p.rect(cx, cy - 1, 1, 3);
+
+        if (config.glow) {
+          drawPxCircle(p, cx, cy, fl.radius + 4, [198, 255, 214], 35);
+        }
+      }
+    }
+
+    function drawDew(p, model, config, time) {
+      if (!config.dew || !model.dew.length) return;
+      for (const d of model.dew) {
+        const pulse = Math.sin(time * 1.8 + d.phase) * 0.5 + 0.5;
+        drawPxCircle(p, snap(d.x), snap(d.y), d.r, [215, 248, 255], 110 + pulse * 46);
+      }
+    }
+
+    function renderStateToText() {
+      if (!appState.model || !appState.config) {
+        return JSON.stringify({ mode: "init", note: "origin top-left, +x right, +y down" });
+      }
+
+      const tip = appState.model.branches[0]?.points.at(-1) || null;
+      const flower = appState.model.flowers[0] || null;
+
+      return JSON.stringify({
+        mode: "editor",
+        note: "origin top-left, +x right, +y down",
+        seed: appState.seed,
+        species: appState.config.species,
+        growthStyle: appState.config.growthStyle,
+        animate: appState.config.animate,
+        time: Number(appState.time.toFixed(3)),
+        counts: {
+          branches: appState.viewFlags.showStems ? appState.model.stems.length : 0,
+          leaves: appState.viewFlags.showLeaves ? appState.model.leaves.length : 0,
+          flowers: appState.viewFlags.showFlowers ? appState.model.flowers.length : 0,
+          fruits: appState.viewFlags.showFruits ? appState.model.fruits.length : 0,
+          thorns: appState.viewFlags.showThorns ? appState.model.thorns.length : 0
+        },
+        visible: appState.viewFlags,
+        anchor: tip ? { x: Number(tip.x.toFixed(2)), y: Number(tip.y.toFixed(2)) } : null,
+        sampleFlower: flower
+          ? {
+              x: Number(flower.x.toFixed(2)),
+              y: Number(flower.y.toFixed(2)),
+              size: Number((flower.radius * 2).toFixed(2)),
+              petals: flower.petals,
+              style: appState.config.flowerStyle
+            }
+          : null
+      });
+    }
+
+    window.render_game_to_text = renderStateToText;
+
+    const sketch = (p) => {
+      p.setup = () => {
+        const root = document.getElementById("p5-root");
+        const c = p.createCanvas(128, 160);
+        c.parent(root);
+        p.pixelDensity(1);
+        p.noSmooth();
+        p.drawingContext.imageSmoothingEnabled = false;
+        p.angleMode(p.RADIANS);
+        rebuildModel(p);
+      };
+
+      p.draw = () => {
+        const t0 = performance.now();
+
+        if (appState.config && appState.config.animate) {
+          const speed = mix(0.34, 2.15, map01(appState.config.speed));
+          appState.time += p.deltaTime / 1000 * speed;
+        }
+
+        const model = appState.model;
+        const config = appState.config;
+        const view = appState.viewFlags;
+
+        if (model && config) {
+          drawBackground(p, model, appState.time, map01(config.wind));
+          if (view.showPot) drawPot(p, model);
+          if (view.showStems) drawBranches(p, model, config, appState.time);
+          if (view.showThorns) drawThorns(p, model, config, appState.time);
+          if (view.showLeaves) drawLeaves(p, model, config, appState.time);
+          if (view.showFruits) drawFruits(p, model, config, appState.time);
+          if (view.showFlowers) drawFlowers(p, model, config, appState.time);
+          if (view.showDew) drawDew(p, model, config, appState.time);
+
+          appState.renderMs = performance.now() - t0;
+
+          const snapshot = JSON.parse(renderStateToText());
+          ui.hud.textContent = [
+            `seed: ${appState.seed}`,
+            `branches: ${snapshot.counts.branches}  leaves: ${snapshot.counts.leaves}`,
+            `flowers: ${snapshot.counts.flowers}  fruits: ${snapshot.counts.fruits}`,
+            `render: ${appState.renderMs.toFixed(2)} ms  t: ${appState.time.toFixed(2)} s`
+          ].join("\n");
+        } else {
+          p.background(10);
+        }
+      };
+
+      p.windowResized = () => {
+        // Pixel-art canvas keeps fixed internal resolution (CSS handles upscale).
+      };
+    };
+
+    const p5Instance = new p5(sketch);
+
+    window.advanceTime = (ms) => {
+      const seconds = clamp(ms, 0, 60000) / 1000;
+      if (!Number.isFinite(seconds) || !appState.config) return;
+      const speed = mix(0.34, 2.15, map01(appState.config.speed));
+      appState.time += seconds * speed;
+    };
+
+    function doRebuild() {
+      rebuildModel(p5Instance);
+    }
+
+    function bindEvents() {
+      ui.btnGenerate.addEventListener("click", doRebuild);
+
+      ui.btnRandom.addEventListener("click", () => {
+        ui.seed.value = randomSeed();
+        doRebuild();
+      });
+
+      ui.btnMutate.addEventListener("click", () => {
+        mutateControls();
+        doRebuild();
+      });
+
+      ui.btnPreset.addEventListener("click", () => {
+        applyPreset(ui.species.value, true);
+        doRebuild();
+      });
+
+      ui.btnReset.addEventListener("click", () => {
+        ui.species.value = "hybrid";
+        ui.seed.value = "p5-genetix-01";
+        applyPreset("hybrid", true);
+        doRebuild();
+      });
+
+      ui.btnExport.addEventListener("click", async () => {
+        try {
+          const payload = {
+            config: readConfig(),
+            state: JSON.parse(renderStateToText())
+          };
+          await copyToClipboard(JSON.stringify(payload, null, 2));
+          alert("Export JSON zkopirovan do schranky.");
+        } catch (err) {
+          console.error(err);
+          alert("Export selhal. Otevri app pres HTTP/HTTPS nebo kopiruj rucne.");
+        }
+      });
+
+      ui.species.addEventListener("change", () => {
+        applyPreset(ui.species.value, true);
+        doRebuild();
+      });
+
+      ui.seed.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") doRebuild();
+      });
+
+      const controls = document.querySelectorAll(
+        "#growthStyle,#complexity,#branchDensity,#stemThickness,#curvature,#wind,#leafShape,#leafSize,#leafColor,#variegation,#serrated,#dew,#flowerStyle,#flowerSize,#flowerA,#flowerB,#fruits,#fruitStyle,#glow,#thorns,#animate,#speed"
+      );
+
+      controls.forEach((el) => {
+        el.addEventListener("change", doRebuild);
+        if (el instanceof HTMLInputElement && el.type === "range") {
+          el.addEventListener("input", doRebuild);
+        }
+      });
+    }
+
+    const presetSpecies = queryParams.get("species");
+    if (presetSpecies && SPECIES_PRESETS[presetSpecies]) {
+      ui.species.value = presetSpecies;
+      applyPreset(presetSpecies, true);
+    } else {
+      applyPreset("hybrid", true);
+    }
+    applyQueryOverrides(queryParams);
+    appState.viewFlags = readViewFlagsFromQuery(queryParams);
+    bindEvents();
+    doRebuild();
+  </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+# Replace these handles with your real GitHub maintainers.
+* @martinbenes
+
+# Core rendering pipeline
+/src/core/ @martinbenes
+/src/engine/ @martinbenes
+/src/orchestrator/ @martinbenes
+/src/renderers/ @martinbenes
+
+# Governance and automation
+/.github/ @martinbenes
+

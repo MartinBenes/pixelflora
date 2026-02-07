@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procedural Plant Generator (Pixel Art)</title>
+</head>
+<body>
+
+<div class="container">
+    <!-- Control Panel (Phenotype + Seed) -->
+    <div class="controls">
+        <h2>Lab</h2>
+
+        <div class="control-group">
+            <label for="input-seed">Seed (String or number)</label>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="input-seed" value="rostlina1" style="flex:1">
+                <button class="secondary" id="btn-random-seed">🎲</button>
+            </div>
+        </div>
+
+        <h3>Genotype (Phenotype)</h3>
+
+        <div class="control-group">
+            <label>Stem: Shape / Thickness / Texture</label>
+            <div style="display:flex; gap:5px;">
+                <select id="gene-stem" style="flex:1">
+                    <option value="straight">Straight</option>
+                    <option value="vine">Vine</option>
+                </select>
+                <select id="gene-stem-thickness" style="flex:1">
+                    <option value="thin">Thin</option>
+                    <option value="thick">Thick</option>
+                </select>
+                <select id="gene-stem-texture" style="flex:1">
+                    <option value="smooth">Smooth</option>
+                    <option value="hairy">Hairy</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Leaves: Shape / Size / Edge</label>
+            <div style="display:flex; gap:5px;">
+                <select id="gene-leaf" style="flex:1">
+                    <option value="narrow">Narrow</option>
+                    <option value="wide">Wide</option>
+                </select>
+                <select id="gene-leaf-size" style="flex:1">
+                    <option value="small">Small</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="large">Large</option>
+                </select>
+            </div>
+             <select id="gene-leaf-edge" style="margin-top:5px;">
+                <option value="smooth">Smooth edge</option>
+                <option value="serrated">Serrated edge</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="gene-foliage-color">Foliage color</label>
+            <select id="gene-foliage-color">
+                <option value="green">Green</option>
+                <option value="teal">Teal</option>
+                <option value="autumn">Autumn</option>
+                <option value="dark">Dark</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>Flower: Shape / Size / Pattern</label>
+            <div style="display:flex; gap:5px;">
+                <select id="gene-flower-shape" style="flex:1">
+                    <option value="round">Round</option>
+                    <option value="pointy">Pointy</option>
+                    <option value="tulip">Tulip</option>
+                    <option value="bell">Bell</option>
+                    <option value="daisy">Daisy</option>
+                </select>
+                <select id="gene-flower-size" style="flex:1">
+                    <option value="small">Small</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="large">Large</option>
+                </select>
+            </div>
+            <select id="gene-flower-pattern" style="margin-top:5px;">
+                <option value="plain">Plain</option>
+                <option value="stripes">Stripes</option>
+                <option value="dots">Dots</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>Flower colors (Primary / Secondary)</label>
+            <div style="display:flex; gap:5px;">
+                <select id="gene-color" style="flex:1">
+                    <option value="red">Red</option>
+                    <option value="blue">Blue</option>
+                    <option value="purple">Purple</option>
+                    <option value="white">White</option>
+                    <option value="yellow">Yellow</option>
+                </select>
+                <select id="gene-color-2" style="flex:1">
+                    <option value="red">Red</option>
+                    <option value="blue">Blue</option>
+                    <option value="purple">Purple</option>
+                    <option value="white">White</option>
+                    <option value="yellow">Yellow</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label for="gene-sex">Flower sex</label>
+            <select id="gene-sex">
+                <option value="hermaphrodite">Hermaphrodite (Pistil + Stamens)</option>
+                <option value="female">Female (Pistil only)</option>
+                <option value="male">Male (Stamens only)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="gene-fruit-shape">Fruit shape</label>
+            <select id="gene-fruit-shape">
+                <option value="round">Round</option>
+                <option value="oval">Oval</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label class="checkbox-row" style="margin-bottom: 5px;">
+                <input type="checkbox" id="animate-toggle">
+                <span style="color: var(--accent); font-weight:bold;">Animation (Idle)</span>
+            </label>
+        </div>
+
+        <div class="checkbox-row">
+            <label class="checkbox-row" style="flex:1">
+                <input type="checkbox" id="gene-thorns">
+                <span>Thorny</span>
+            </label>
+             <label class="checkbox-row" style="flex:1">
+                <input type="checkbox" id="gene-fruit">
+                <span>Fruiting</span>
+            </label>
+        </div>
+
+        <div class="control-group">
+            <label class="checkbox-row">
+                <input type="checkbox" id="gene-glow">
+                <span>Bioluminescence (Glow)</span>
+            </label>
+        </div>
+
+        <div class="control-group">
+            <label>Canvas background</label>
+            <select id="canvas-bg">
+                <option value="transparent">Transparent</option>
+                <option value="white">White</option>
+                <option value="dark">Dark</option>
+            </select>
+        </div>
+
+        <button id="btn-generate">Generate Plant</button>
+        <button id="btn-export-bw" class="secondary">Export B&W (PNG)</button>
+        <button id="btn-export" class="secondary">Copy Seed Card</button>
+
+        <div class="control-group">
+            <label for="input-seed-card">Import Seed Card (JSON)</label>
+            <textarea id="input-seed-card" rows="5" placeholder='{"schemaVersion":1,"config":{...}}'></textarea>
+            <div class="action-row">
+                <button id="btn-import-seed-card" class="secondary">Load JSON</button>
+                <button id="btn-import-seed-card-clipboard" class="secondary">Paste from Clipboard</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Area -->
+    <div class="preview-area">
+        <div class="canvas-container">
+            <canvas id="plantCanvas" width="192" height="288" style="width: 384px; height: 576px;"></canvas>
+            <div class="meta-info">
+                <span id="seed-display">Seed: --</span><br>
+                <span id="time-display">Render: 0ms | Frame: 0</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+:root {
+  --bg-color: #1a1a1d;
+  --panel-bg: #2d2d35;
+  --text-color: #e0e0e0;
+  --accent: #4caf50;
+  --border: #444;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  margin: 0;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+h2,
+h3 {
+  margin-top: 0;
+  color: var(--accent);
+}

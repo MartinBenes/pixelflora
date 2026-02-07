@@ -1,0 +1,1877 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Botanicka laborator 4.0</title>
+  <style>
+    :root {
+      --bg: #0f1714;
+      --panel: #19261f;
+      --panel-border: #2b3f35;
+      --text: #e6f0ea;
+      --muted: #9db3a8;
+      --accent: #6dcf8f;
+      --accent-2: #2cae67;
+      --danger: #c45c6b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Inter", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 16%, #1c3c2a 0%, transparent 32%),
+        radial-gradient(circle at 86% 8%, #243728 0%, transparent 28%),
+        radial-gradient(circle at 48% 90%, #1a2f25 0%, transparent 34%),
+        var(--bg);
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .app {
+      width: min(1320px, 100%);
+      display: grid;
+      grid-template-columns: minmax(290px, 360px) 1fr;
+      gap: 16px;
+    }
+
+    .panel {
+      background: color-mix(in oklab, var(--panel) 93%, black 7%);
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: calc(100vh - 36px);
+      overflow: auto;
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.35);
+    }
+
+    .panel h1 {
+      margin: 0;
+      font-size: 1.1rem;
+      letter-spacing: 0.02em;
+      color: #d6ffe5;
+    }
+
+    .panel p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.35;
+    }
+
+    .section {
+      border: 1px solid #30483c;
+      border-radius: 10px;
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+    }
+
+    .section-title {
+      font-weight: 700;
+      color: #b7f7cd;
+      font-size: 0.88rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    label {
+      display: grid;
+      gap: 4px;
+      font-size: 0.84rem;
+      color: #cde5d8;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .row3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    input,
+    select,
+    button {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid #3a5347;
+      background: #142019;
+      color: var(--text);
+      padding: 8px;
+      font-size: 0.88rem;
+    }
+
+    input[type="range"] {
+      padding: 0;
+    }
+
+    input[type="checkbox"] {
+      width: auto;
+      accent-color: var(--accent);
+      margin: 0;
+      transform: translateY(1px);
+    }
+
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.86rem;
+      color: #d6eadf;
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: 650;
+      transition: transform 0.12s ease, opacity 0.12s ease, border-color 0.12s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      border-color: #6e9f87;
+    }
+
+    .primary {
+      background: linear-gradient(180deg, var(--accent), var(--accent-2));
+      color: #072111;
+      border-color: #5fbf83;
+    }
+
+    .secondary {
+      background: #263a31;
+      color: #d1f0e0;
+    }
+
+    .danger {
+      background: #3c2830;
+      border-color: #8b3f4c;
+      color: #f1d7de;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      background: #101a15;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 640px;
+    }
+
+    #plantCanvas {
+      width: min(92vw, 760px);
+      height: min(calc(92vw * 1.35), 1026px);
+      max-height: calc(100vh - 70px);
+      display: block;
+      border-radius: 12px;
+      background: #0f1915;
+    }
+
+    .hud {
+      position: absolute;
+      left: 12px;
+      top: 12px;
+      background: rgba(12, 18, 15, 0.72);
+      border: 1px solid rgba(122, 161, 141, 0.35);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.4;
+      color: #d7e9df;
+      min-width: 180px;
+      backdrop-filter: blur(4px);
+      pointer-events: none;
+    }
+
+    .hint {
+      font-size: 0.78rem;
+      color: #89a89a;
+      line-height: 1.35;
+    }
+
+    @media (max-width: 1000px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        max-height: none;
+      }
+
+      .canvas-wrap {
+        min-height: 540px;
+      }
+
+      #plantCanvas {
+        width: min(94vw, 560px);
+        height: min(calc(94vw * 1.35), 756px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="panel">
+      <h1>Botanicka laborator 2.0</h1>
+      <p>Nova verze od nuly: bohatsi morfologie, detailnejsi listy/kvety/plody, deterministic seed a plynuly pohyb ve vetru.</p>
+
+      <div class="section">
+        <div class="section-title">Seed</div>
+        <div class="row">
+          <label>
+            Hodnota seedu
+            <input id="seed-input" type="text" value="genetix-rose-01" />
+          </label>
+          <label>
+            Druh
+            <select id="species">
+              <option value="hybrid" selected>Hybrid</option>
+              <option value="rose">Ruze</option>
+              <option value="orchid">Orchidej</option>
+              <option value="sunflower">Slunecnice</option>
+              <option value="bonsai">Bonsai</option>
+            </select>
+          </label>
+        </div>
+        <div class="row3">
+          <button id="btn-random" class="secondary">Nahodny seed</button>
+          <button id="btn-mutate" class="danger">Mutace</button>
+          <button id="btn-export" class="secondary">Export JSON</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Telo rostliny</div>
+        <div class="row">
+          <label>
+            Styl rustu
+            <select id="growth-style">
+              <option value="upright">Vzprimeny</option>
+              <option value="branchy" selected>Vetveny</option>
+              <option value="bushy">Keri</option>
+              <option value="vine">Liana</option>
+            </select>
+          </label>
+          <label>
+            Kompletnost
+            <input id="complexity" type="range" min="0" max="100" value="66" />
+          </label>
+        </div>
+        <div class="row">
+          <label>
+            Hustota vetvi
+            <input id="branch-density" type="range" min="0" max="100" value="58" />
+          </label>
+          <label>
+            Tlousta stonku
+            <input id="stem-thickness" type="range" min="0" max="100" value="52" />
+          </label>
+        </div>
+        <div class="row">
+          <label>
+            Krivost
+            <input id="curve" type="range" min="0" max="100" value="44" />
+          </label>
+          <label>
+            Sila vetru
+            <input id="wind" type="range" min="0" max="100" value="42" />
+          </label>
+        </div>
+        <div class="row">
+          <label>
+            Hladkost stonku
+            <input id="stem-smoothing" type="range" min="0" max="100" value="100" />
+          </label>
+          <label>
+            Napeti krivky
+            <input id="stem-tension" type="range" min="0" max="100" value="50" />
+          </label>
+        </div>
+        <label>
+          Hloubkovy utlum
+          <input id="depth-fade" type="range" min="0" max="100" value="30" />
+        </label>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Listy</div>
+        <div class="row">
+          <label>
+            Tvar listu
+            <select id="leaf-style">
+              <option value="oval" selected>Oval</option>
+              <option value="lance">Lance</option>
+              <option value="heart">Srdce</option>
+            </select>
+          </label>
+          <label>
+            Velikost listu
+            <input id="leaf-size" type="range" min="0" max="100" value="55" />
+          </label>
+        </div>
+        <div class="row">
+          <label>
+            Barva listu
+            <select id="leaf-color">
+              <option value="green" selected>Zelena</option>
+              <option value="mint">Mint</option>
+              <option value="teal">Teal</option>
+              <option value="autumn">Podzim</option>
+              <option value="dark">Tmava</option>
+            </select>
+          </label>
+          <label>
+            Variegace
+            <input id="variegation" type="range" min="0" max="100" value="24" />
+          </label>
+        </div>
+        <div class="row">
+          <label class="check"><input id="leaf-serration" type="checkbox" checked /> Zoubkovany okraj</label>
+          <label class="check"><input id="leaf-dew" type="checkbox" /> Rosne kapky</label>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Kvety a plody</div>
+        <div class="row">
+          <label>
+            Styl kvetu
+            <select id="flower-style">
+              <option value="rosette" selected>Rozeta</option>
+              <option value="star">Hvezda</option>
+              <option value="bell">Zvon</option>
+              <option value="daisy">Sedmikraska</option>
+            </select>
+          </label>
+          <label>
+            Velikost kvetu
+            <input id="flower-size" type="range" min="0" max="100" value="54" />
+          </label>
+        </div>
+        <label>
+          Variace platku
+          <input id="petal-variation" type="range" min="0" max="100" value="50" />
+        </label>
+        <div class="row">
+          <label>
+            Primarni barva
+            <select id="flower-color-1">
+              <option value="rose" selected>Rose</option>
+              <option value="sun">Sun</option>
+              <option value="violet">Violet</option>
+              <option value="white">White</option>
+              <option value="crimson">Crimson</option>
+            </select>
+          </label>
+          <label>
+            Sekundarni barva
+            <select id="flower-color-2">
+              <option value="peach">Peach</option>
+              <option value="sun" selected>Sun</option>
+              <option value="violet">Violet</option>
+              <option value="white">White</option>
+              <option value="crimson">Crimson</option>
+            </select>
+          </label>
+        </div>
+        <div class="row">
+          <label class="check"><input id="fruit-enabled" type="checkbox" checked /> Plody</label>
+          <label>
+            Typ plodu
+            <select id="fruit-style">
+              <option value="berry" selected>Berry</option>
+              <option value="pear">Pear</option>
+              <option value="pod">Pod</option>
+            </select>
+          </label>
+        </div>
+        <div class="row">
+          <label class="check"><input id="glow-enabled" type="checkbox" /> Jemny glow</label>
+          <label class="check"><input id="thorns-enabled" type="checkbox" /> Trny</label>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Animace</div>
+        <div class="row">
+          <label class="check"><input id="animate-toggle" type="checkbox" checked /> Idle animace</label>
+          <label>
+            Rychlost
+            <input id="anim-speed" type="range" min="0" max="100" value="46" />
+          </label>
+        </div>
+        <div class="row3">
+          <button id="btn-generate" class="primary">Generovat</button>
+          <button id="btn-preset" class="secondary">Aplikovat druh</button>
+          <button id="btn-reset" class="secondary">Reset UI</button>
+        </div>
+        <div class="hint">
+          Tip: seed + druh urcuji genetiku. Men jen 1-2 slidery a porovnej morfologii.
+        </div>
+      </div>
+    </aside>
+
+    <main class="canvas-wrap">
+      <canvas id="plantCanvas" width="720" height="972"></canvas>
+      <div class="hud" id="hud">seed: --</div>
+    </main>
+  </div>
+
+  <script>
+    const TAU = Math.PI * 2;
+
+    class RNG {
+      constructor(seedText) {
+        let h = 2166136261 >>> 0;
+        for (let i = 0; i < seedText.length; i++) {
+          h ^= seedText.charCodeAt(i);
+          h = Math.imul(h, 16777619);
+        }
+        this.state = h >>> 0;
+      }
+
+      next() {
+        let t = (this.state += 0x6d2b79f5);
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      }
+
+      float(min = 0, max = 1) {
+        return min + (max - min) * this.next();
+      }
+
+      int(min, max) {
+        return Math.floor(this.float(min, max + 1));
+      }
+
+      chance(probability) {
+        return this.next() < probability;
+      }
+
+      pick(items) {
+        return items[Math.floor(this.next() * items.length)];
+      }
+    }
+
+    const LEAF_PALETTES = {
+      green: { dark: "#2f6a3a", main: "#4f9a52", light: "#93d17f", vein: "#d8f1bf" },
+      mint: { dark: "#2a6d59", main: "#4ab597", light: "#98f0d2", vein: "#d0fff1" },
+      teal: { dark: "#24575f", main: "#2b8a95", light: "#8dd2db", vein: "#daf6fa" },
+      autumn: { dark: "#874d1d", main: "#d68030", light: "#efb16a", vein: "#ffe4bb" },
+      dark: { dark: "#2a3d33", main: "#476055", light: "#7f9b8e", vein: "#c8ddd3" }
+    };
+
+    const FLOWER_PALETTES = {
+      rose: { dark: "#8f2d44", main: "#d64c75", light: "#ff9dbc", center: "#ffd66e" },
+      peach: { dark: "#b85d3c", main: "#eb8858", light: "#ffc6a5", center: "#ffe684" },
+      sun: { dark: "#cc8100", main: "#f6b100", light: "#ffe079", center: "#7d4800" },
+      violet: { dark: "#5c3f9f", main: "#8e69d9", light: "#c7afff", center: "#f9d36b" },
+      white: { dark: "#b4c0ce", main: "#e9eef5", light: "#ffffff", center: "#f7d76e" },
+      crimson: { dark: "#7a1427", main: "#c52945", light: "#ff8ca2", center: "#ffd486" }
+    };
+
+    const FRUIT_PALETTES = {
+      berry: { dark: "#4f1766", main: "#8a2dad", light: "#c887e0" },
+      pear: { dark: "#588021", main: "#87b739", light: "#cae38d" },
+      pod: { dark: "#7d5f1f", main: "#b88a35", light: "#ddbf77" }
+    };
+
+    const SPECIES_PRESETS = {
+      hybrid: {
+        growthStyle: "branchy",
+        branchDensity: 58,
+        complexity: 66,
+        stemThickness: 52,
+        curve: 44,
+        stemSmoothing: 100,
+        stemTension: 50,
+        depthFade: 30,
+        leafStyle: "oval",
+        leafSize: 55,
+        leafColor: "green",
+        variegation: 24,
+        leafSerration: true,
+        flowerStyle: "rosette",
+        flowerSize: 54,
+        petalVariation: 50,
+        flowerColor1: "rose",
+        flowerColor2: "sun",
+        fruitEnabled: true,
+        fruitStyle: "berry",
+        glowEnabled: false,
+        thornsEnabled: false,
+        wind: 42,
+        animSpeed: 46
+      },
+      rose: {
+        growthStyle: "branchy",
+        branchDensity: 52,
+        complexity: 64,
+        stemThickness: 56,
+        curve: 48,
+        stemSmoothing: 100,
+        stemTension: 45,
+        depthFade: 30,
+        leafStyle: "oval",
+        leafSize: 52,
+        leafColor: "green",
+        variegation: 16,
+        leafSerration: true,
+        flowerStyle: "rosette",
+        flowerSize: 62,
+        petalVariation: 55,
+        flowerColor1: "crimson",
+        flowerColor2: "rose",
+        fruitEnabled: true,
+        fruitStyle: "berry",
+        glowEnabled: false,
+        thornsEnabled: true,
+        wind: 38,
+        animSpeed: 40
+      },
+      orchid: {
+        growthStyle: "upright",
+        branchDensity: 34,
+        complexity: 48,
+        stemThickness: 44,
+        curve: 30,
+        stemSmoothing: 100,
+        stemTension: 55,
+        depthFade: 25,
+        leafStyle: "lance",
+        leafSize: 60,
+        leafColor: "teal",
+        variegation: 18,
+        leafSerration: false,
+        flowerStyle: "star",
+        flowerSize: 66,
+        petalVariation: 30,
+        flowerColor1: "violet",
+        flowerColor2: "white",
+        fruitEnabled: false,
+        fruitStyle: "pod",
+        glowEnabled: true,
+        thornsEnabled: false,
+        wind: 48,
+        animSpeed: 52
+      },
+      sunflower: {
+        growthStyle: "upright",
+        branchDensity: 22,
+        complexity: 56,
+        stemThickness: 62,
+        curve: 22,
+        stemSmoothing: 100,
+        stemTension: 60,
+        depthFade: 25,
+        leafStyle: "heart",
+        leafSize: 68,
+        leafColor: "green",
+        variegation: 10,
+        leafSerration: true,
+        flowerStyle: "daisy",
+        flowerSize: 80,
+        petalVariation: 25,
+        flowerColor1: "sun",
+        flowerColor2: "sun",
+        fruitEnabled: true,
+        fruitStyle: "pear",
+        glowEnabled: false,
+        thornsEnabled: false,
+        wind: 30,
+        animSpeed: 34
+      },
+      bonsai: {
+        growthStyle: "bushy",
+        branchDensity: 70,
+        complexity: 78,
+        stemThickness: 46,
+        curve: 70,
+        stemSmoothing: 100,
+        stemTension: 40,
+        depthFade: 35,
+        leafStyle: "oval",
+        leafSize: 42,
+        leafColor: "dark",
+        variegation: 8,
+        leafSerration: false,
+        flowerStyle: "bell",
+        flowerSize: 36,
+        petalVariation: 45,
+        flowerColor1: "peach",
+        flowerColor2: "white",
+        fruitEnabled: false,
+        fruitStyle: "pod",
+        glowEnabled: false,
+        thornsEnabled: false,
+        wind: 36,
+        animSpeed: 28
+      }
+    };
+
+    const STYLE_PROFILES = {
+      upright: {
+        baseLength: 0.43,
+        branchFactor: 0.78,
+        depthBias: 1,
+        trunkCountMin: 1,
+        trunkCountMax: 2,
+        spread: 0.14,
+        droop: 0.02
+      },
+      branchy: {
+        baseLength: 0.4,
+        branchFactor: 1,
+        depthBias: 1,
+        trunkCountMin: 1,
+        trunkCountMax: 2,
+        spread: 0.18,
+        droop: 0.06
+      },
+      bushy: {
+        baseLength: 0.31,
+        branchFactor: 1.28,
+        depthBias: 1,
+        trunkCountMin: 2,
+        trunkCountMax: 4,
+        spread: 0.32,
+        droop: 0.08
+      },
+      vine: {
+        baseLength: 0.36,
+        branchFactor: 1.12,
+        depthBias: 2,
+        trunkCountMin: 1,
+        trunkCountMax: 2,
+        spread: 0.24,
+        droop: 0.17
+      }
+    };
+
+    const state = {
+      canvas: document.getElementById("plantCanvas"),
+      ctx: document.getElementById("plantCanvas").getContext("2d"),
+      hud: document.getElementById("hud"),
+      model: null,
+      config: null,
+      seed: "",
+      animating: true,
+      time: 0,
+      frameId: null,
+      lastTs: 0,
+      lastRenderMs: 0
+    };
+
+    const refs = {
+      seedInput: document.getElementById("seed-input"),
+      species: document.getElementById("species"),
+      growthStyle: document.getElementById("growth-style"),
+      complexity: document.getElementById("complexity"),
+      branchDensity: document.getElementById("branch-density"),
+      stemThickness: document.getElementById("stem-thickness"),
+      curve: document.getElementById("curve"),
+      wind: document.getElementById("wind"),
+      stemSmoothing: document.getElementById("stem-smoothing"),
+      stemTension: document.getElementById("stem-tension"),
+      depthFade: document.getElementById("depth-fade"),
+      leafStyle: document.getElementById("leaf-style"),
+      leafSize: document.getElementById("leaf-size"),
+      leafColor: document.getElementById("leaf-color"),
+      variegation: document.getElementById("variegation"),
+      leafSerration: document.getElementById("leaf-serration"),
+      leafDew: document.getElementById("leaf-dew"),
+      flowerStyle: document.getElementById("flower-style"),
+      flowerSize: document.getElementById("flower-size"),
+      petalVariation: document.getElementById("petal-variation"),
+      flowerColor1: document.getElementById("flower-color-1"),
+      flowerColor2: document.getElementById("flower-color-2"),
+      fruitEnabled: document.getElementById("fruit-enabled"),
+      fruitStyle: document.getElementById("fruit-style"),
+      glowEnabled: document.getElementById("glow-enabled"),
+      thornsEnabled: document.getElementById("thorns-enabled"),
+      animateToggle: document.getElementById("animate-toggle"),
+      animSpeed: document.getElementById("anim-speed"),
+      btnGenerate: document.getElementById("btn-generate"),
+      btnRandom: document.getElementById("btn-random"),
+      btnMutate: document.getElementById("btn-mutate"),
+      btnExport: document.getElementById("btn-export"),
+      btnPreset: document.getElementById("btn-preset"),
+      btnReset: document.getElementById("btn-reset")
+    };
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function mix(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function map01(value) {
+      return clamp(value / 100, 0, 1);
+    }
+
+    function randomSeed() {
+      return `${Math.random().toString(36).slice(2, 8)}-${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+    function copyTextToClipboard(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+      }
+
+      return new Promise((resolve, reject) => {
+        const helper = document.createElement("textarea");
+        helper.value = text;
+        helper.setAttribute("readonly", "");
+        helper.style.position = "absolute";
+        helper.style.left = "-9999px";
+        document.body.appendChild(helper);
+        helper.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(helper);
+        if (ok) resolve();
+        else reject(new Error("Clipboard copy failed"));
+      });
+    }
+
+    function getConfigFromUI() {
+      const seed = refs.seedInput.value.trim() || "plant-seed";
+      return {
+        seed,
+        species: refs.species.value,
+        growthStyle: refs.growthStyle.value,
+        complexity: Number(refs.complexity.value),
+        branchDensity: Number(refs.branchDensity.value),
+        stemThickness: Number(refs.stemThickness.value),
+        curve: Number(refs.curve.value),
+        wind: Number(refs.wind.value),
+        stemSmoothing: Number(refs.stemSmoothing.value),
+        stemTension: Number(refs.stemTension.value),
+        depthFade: Number(refs.depthFade.value),
+        leafStyle: refs.leafStyle.value,
+        leafSize: Number(refs.leafSize.value),
+        leafColor: refs.leafColor.value,
+        variegation: Number(refs.variegation.value),
+        leafSerration: refs.leafSerration.checked,
+        leafDew: refs.leafDew.checked,
+        flowerStyle: refs.flowerStyle.value,
+        flowerSize: Number(refs.flowerSize.value),
+        petalVariation: Number(refs.petalVariation.value),
+        flowerColor1: refs.flowerColor1.value,
+        flowerColor2: refs.flowerColor2.value,
+        fruitEnabled: refs.fruitEnabled.checked,
+        fruitStyle: refs.fruitStyle.value,
+        glowEnabled: refs.glowEnabled.checked,
+        thornsEnabled: refs.thornsEnabled.checked,
+        animate: refs.animateToggle.checked,
+        animSpeed: Number(refs.animSpeed.value)
+      };
+    }
+
+    function applyPreset(species, keepSeed = true) {
+      const preset = SPECIES_PRESETS[species] || SPECIES_PRESETS.hybrid;
+      refs.growthStyle.value = preset.growthStyle;
+      refs.branchDensity.value = String(preset.branchDensity);
+      refs.complexity.value = String(preset.complexity);
+      refs.stemThickness.value = String(preset.stemThickness);
+      refs.curve.value = String(preset.curve);
+      refs.stemSmoothing.value = String(preset.stemSmoothing ?? 100);
+      refs.stemTension.value = String(preset.stemTension ?? 50);
+      refs.depthFade.value = String(preset.depthFade ?? 30);
+      refs.leafStyle.value = preset.leafStyle;
+      refs.leafSize.value = String(preset.leafSize);
+      refs.leafColor.value = preset.leafColor;
+      refs.variegation.value = String(preset.variegation);
+      refs.leafSerration.checked = Boolean(preset.leafSerration);
+      refs.flowerStyle.value = preset.flowerStyle;
+      refs.flowerSize.value = String(preset.flowerSize);
+      refs.petalVariation.value = String(preset.petalVariation ?? 50);
+      refs.flowerColor1.value = preset.flowerColor1;
+      refs.flowerColor2.value = preset.flowerColor2;
+      refs.fruitEnabled.checked = Boolean(preset.fruitEnabled);
+      refs.fruitStyle.value = preset.fruitStyle;
+      refs.glowEnabled.checked = Boolean(preset.glowEnabled);
+      refs.thornsEnabled.checked = Boolean(preset.thornsEnabled);
+      refs.wind.value = String(preset.wind);
+      refs.animSpeed.value = String(preset.animSpeed);
+      if (!keepSeed) refs.seedInput.value = randomSeed();
+    }
+
+    function makePoint(x, y, progress, depth, rng, windScale) {
+      return {
+        x,
+        y,
+        progress,
+        depth,
+        swayAmp: mix(0.2, 8.8 * windScale, progress) * (1 - depth * 0.11),
+        swayFreq: rng.float(0.65, 1.8),
+        swayPhase: rng.float(0, TAU)
+      };
+    }
+
+    function getSwayOffset(pt, t, windStrength) {
+      return Math.sin(t * pt.swayFreq + pt.swayPhase) * pt.swayAmp * windStrength;
+    }
+
+    function depthFadeFactor(depth, maxDepth, depthFade01) {
+      if (maxDepth <= 0) return 0;
+      return clamp(depth / maxDepth, 0, 1) * depthFade01;
+    }
+
+    function catmullRomCP(p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y, tension) {
+      const t = tension || 1;
+      return {
+        cp1x: p1x + (p2x - p0x) / (6 * t),
+        cp1y: p1y + (p2y - p0y) / (6 * t),
+        cp2x: p2x - (p3x - p1x) / (6 * t),
+        cp2y: p2y - (p3y - p1y) / (6 * t)
+      };
+    }
+
+    function buildPlantModel(config) {
+      const rng = new RNG(`${config.seed}|${config.species}|${config.growthStyle}`);
+      const profile = STYLE_PROFILES[config.growthStyle] || STYLE_PROFILES.branchy;
+
+      const width = state.canvas.width;
+      const height = state.canvas.height;
+      const groundY = height - 88;
+      const originX = width * 0.5;
+      const stems = [];
+      const leaves = [];
+      const flowers = [];
+      const fruits = [];
+      const thorns = [];
+      const dew = [];
+
+      const complexity01 = map01(config.complexity);
+      const branch01 = map01(config.branchDensity);
+      const thickness01 = map01(config.stemThickness);
+      const curve01 = map01(config.curve);
+      const leafSize01 = map01(config.leafSize);
+      const flowerSize01 = map01(config.flowerSize);
+      const variegation01 = map01(config.variegation);
+      const wind01 = map01(config.wind);
+
+      const trunkCount = rng.int(
+        profile.trunkCountMin,
+        profile.trunkCountMax + Math.round(complexity01)
+      );
+
+      const maxDepth = clamp(Math.round(1 + complexity01 * 2.2 + profile.depthBias), 2, 5);
+      const baseLength = height * profile.baseLength * mix(0.9, 1.35, complexity01);
+
+      const maxFlowers = Math.round(mix(3, 14, complexity01 * map01(config.flowerSize)));
+      const maxLeaves = Math.round(mix(12, 40, complexity01 * branch01));
+      const maxFruits = Math.round(mix(2, 8, complexity01 * branch01));
+
+      const speciesTuning = {
+        hybrid: { branch: 1, flower: 1, fruit: 1, thorns: 0.04 },
+        rose: { branch: 0.9, flower: 1.2, fruit: 1.1, thorns: 0.25 },
+        orchid: { branch: 0.7, flower: 1.15, fruit: 0.5, thorns: 0.02 },
+        sunflower: { branch: 0.52, flower: 1.25, fruit: 0.85, thorns: 0.02 },
+        bonsai: { branch: 1.35, flower: 0.65, fruit: 0.35, thorns: 0.01 }
+      }[config.species] || { branch: 1, flower: 1, fruit: 1, thorns: 0.04 };
+
+      function registerLeaf(anchor, direction, depth, vigor) {
+        if (leaves.length >= maxLeaves) return;
+        const baseLen = mix(26, 82, leafSize01) * mix(1.05, 0.62, depth / (maxDepth + 0.4)) * vigor;
+        const baseWidth =
+          config.leafStyle === "lance"
+            ? baseLen * 0.22
+            : config.leafStyle === "heart"
+              ? baseLen * 0.38
+              : baseLen * 0.3;
+
+        leaves.push({
+          x: anchor.x,
+          y: anchor.y,
+          angle: direction,
+          length: baseLen,
+          width: baseWidth,
+          depth,
+          style: config.leafStyle,
+          serrated: config.leafSerration,
+          variegation: variegation01,
+          veinCount: rng.int(2, 6),
+          swayAmp: rng.float(0.03, 0.16),
+          swayFreq: rng.float(0.8, 1.95),
+          swayPhase: rng.float(0, TAU),
+          twist: rng.float(-0.08, 0.08)
+        });
+
+        if (config.leafDew && rng.chance(0.22)) {
+          dew.push({
+            x: anchor.x + Math.cos(direction) * baseLen * rng.float(0.45, 0.88),
+            y: anchor.y + Math.sin(direction) * baseLen * rng.float(0.45, 0.88),
+            r: rng.float(1.2, 2.7),
+            depth,
+            phase: rng.float(0, TAU)
+          });
+        }
+      }
+
+      function registerFlower(anchor, direction, depth, vigor) {
+        if (flowers.length >= maxFlowers) return;
+        const size = mix(16, 70, flowerSize01) * mix(1.02, 0.62, depth / (maxDepth + 0.6)) * vigor;
+        const petalBase =
+          config.flowerStyle === "daisy"
+            ? rng.int(14, 26)
+            : config.flowerStyle === "star"
+              ? rng.int(6, 11)
+              : config.flowerStyle === "bell"
+                ? rng.int(5, 8)
+                : rng.int(11, 20);
+
+        const petalVar01 = map01(config.petalVariation ?? 50);
+        const petalRng = new RNG(`petal|${anchor.x.toFixed(2)}|${anchor.y.toFixed(2)}|${depth}`);
+        const petalData = [];
+        for (let i = 0; i < petalBase; i++) {
+          petalData.push({
+            lenScale: 1 + petalRng.float(-0.15, 0.15) * petalVar01,
+            widthScale: 1 + petalRng.float(-0.12, 0.12) * petalVar01,
+            angleOffset: petalRng.float(-0.08, 0.08) * petalVar01,
+            curl: petalRng.float(-0.12, 0.12) * petalVar01,
+            twist: petalRng.float(-0.06, 0.06) * petalVar01
+          });
+        }
+
+        flowers.push({
+          x: anchor.x,
+          y: anchor.y,
+          angle: direction,
+          style: config.flowerStyle,
+          size,
+          petals: petalBase,
+          petalData,
+          rotation: rng.float(0, TAU),
+          swayAmp: rng.float(0.02, 0.16),
+          swayFreq: rng.float(0.6, 1.5),
+          swayPhase: rng.float(0, TAU),
+          depth,
+          pollenDots: rng.int(18, 48),
+          spread: rng.float(0.7, 1.08)
+        });
+      }
+
+      function registerFruit(anchor, direction, depth) {
+        if (!config.fruitEnabled) return;
+        if (fruits.length >= maxFruits) return;
+        if (!rng.chance((0.1 + branch01 * 0.35) * speciesTuning.fruit)) return;
+
+        const base = mix(5, 16, map01(config.flowerSize));
+        const styleScale = config.fruitStyle === "pear" ? 1.18 : config.fruitStyle === "pod" ? 1.26 : 1;
+
+        fruits.push({
+          x: anchor.x,
+          y: anchor.y,
+          angle: direction,
+          style: config.fruitStyle,
+          rx: base * styleScale,
+          ry: base * (config.fruitStyle === "berry" ? 0.92 : 1.2),
+          depth,
+          swayAmp: rng.float(0.04, 0.13),
+          swayFreq: rng.float(0.6, 1.45),
+          swayPhase: rng.float(0, TAU)
+        });
+      }
+
+      function growBranch(origin, baseAngle, length, thickness, depth) {
+        const segments = clamp(Math.round(length / mix(13, 8, complexity01)), 6, 32);
+        const points = [];
+        let x = origin.x;
+        let y = origin.y;
+        let angle = baseAngle;
+
+        const curveAmp = mix(0.01, 0.16, curve01) * mix(0.7, 1.35, profile.branchFactor);
+        const branchWander = rng.float(-curveAmp, curveAmp);
+        const localWindScale = mix(0.3, 1.25, wind01);
+
+        points.push(makePoint(x, y, 0, depth, rng, localWindScale));
+
+        for (let i = 1; i <= segments; i++) {
+          const t = i / segments;
+          const wave = Math.sin(t * Math.PI * rng.float(1.2, 2.4) + rng.float(0, TAU));
+          const gravity = profile.droop * t * mix(0.2, 1.4, curve01);
+          angle += branchWander * (1 - t * 0.6) + wave * 0.016 - gravity;
+
+          const step = (length / segments) * (1 - t * 0.1);
+          x += Math.cos(angle) * step;
+          y += Math.sin(angle) * step;
+          if (y < 52) y = 52;
+
+          const pt = makePoint(x, y, t, depth, rng, localWindScale);
+          points.push(pt);
+
+          const leafChance =
+            (0.09 + branch01 * 0.36) *
+            mix(1.08, 0.5, depth / (maxDepth + 0.3)) *
+            mix(0.82, 1.18, complexity01);
+
+          if (i >= 2 && i <= segments - 2 && rng.chance(leafChance)) {
+            const side = rng.chance(0.5) ? -1 : 1;
+            const fan = side * rng.float(0.72, 1.18);
+            registerLeaf(pt, angle + fan, depth, rng.float(0.82, 1.18));
+            if (rng.chance(0.35 + branch01 * 0.2)) {
+              registerLeaf(pt, angle - fan * rng.float(0.58, 0.92), depth, rng.float(0.62, 0.88));
+            }
+          }
+
+          if (
+            depth < maxDepth &&
+            i >= 2 &&
+            i <= segments - 2 &&
+            rng.chance((0.024 + branch01 * 0.2) * profile.branchFactor * speciesTuning.branch)
+          ) {
+            const side = rng.chance(0.5) ? -1 : 1;
+            const childAngle = angle + side * rng.float(0.42, 1.05);
+            const childLength = length * rng.float(0.45, 0.76) * mix(1.02, 0.7, depth / (maxDepth + 1));
+            const childThickness = thickness * rng.float(0.58, 0.84);
+            growBranch({ x, y }, childAngle, childLength, childThickness, depth + 1);
+          }
+
+          if (config.thornsEnabled && rng.chance(speciesTuning.thorns * mix(1.2, 0.35, depth / (maxDepth + 0.4)))) {
+            const side = rng.chance(0.5) ? -1 : 1;
+            thorns.push({
+              x,
+              y,
+              angle: angle + side * rng.float(1.2, 1.7),
+              len: rng.float(4, 12) * mix(1.05, 0.65, depth / (maxDepth + 0.2)),
+              depth
+            });
+          }
+
+          if (config.fruitEnabled && depth >= 1 && i > segments * 0.4 && rng.chance(0.04 + branch01 * 0.08)) {
+            registerFruit(pt, angle + rng.float(-0.8, 0.8), depth);
+          }
+        }
+
+        const lastPt = points[points.length - 1];
+        const flowerChance =
+          (depth >= maxDepth - 1 ? 0.55 : 0.15 + complexity01 * 0.15) *
+          mix(0.95, 1.3, speciesTuning.flower - 0.4);
+
+        if (rng.chance(flowerChance)) {
+          registerFlower(lastPt, angle, depth, mix(1.08, 0.82, depth / (maxDepth + 1)));
+          // listy kolem kvetu — kalich / podpurne listi
+          const calyxCount = rng.int(2, 4);
+          for (let ci = 0; ci < calyxCount; ci++) {
+            const calyxAngle = angle + rng.float(-1.2, 1.2);
+            registerLeaf(lastPt, calyxAngle, depth, rng.float(0.4, 0.65));
+          }
+        } else {
+          registerLeaf(lastPt, angle + rng.float(-0.6, 0.6), depth, 0.86);
+          if (rng.chance(0.45)) {
+            registerLeaf(lastPt, angle + rng.float(-1.0, 1.0), depth, rng.float(0.5, 0.75));
+          }
+        }
+
+        stems.push({
+          points,
+          depth,
+          thicknessStart: thickness,
+          thicknessEnd: Math.max(1.3, thickness * 0.24),
+          hueShift: rng.float(-0.06, 0.06)
+        });
+      }
+
+      for (let i = 0; i < trunkCount; i++) {
+        const xOffset = (i - (trunkCount - 1) / 2) * rng.float(15, 36) * profile.spread;
+        const x = originX + xOffset + rng.float(-12, 12);
+        const y = groundY + rng.float(-1, 2);
+        const angle = -Math.PI / 2 + rng.float(-profile.spread, profile.spread);
+        const length = baseLength * rng.float(0.8, 1.2);
+        const thickness = mix(8, 24, thickness01) * rng.float(0.82, 1.22);
+        growBranch({ x, y }, angle, length, thickness, 0);
+      }
+
+      const ambience = [];
+      const ambienceCount = rng.int(8, 24);
+      for (let i = 0; i < ambienceCount; i++) {
+        ambience.push({
+          x: rng.float(width * 0.14, width * 0.86),
+          y: rng.float(height * 0.08, height * 0.65),
+          r: rng.float(1.2, 3.6),
+          alpha: rng.float(0.05, 0.24),
+          phase: rng.float(0, TAU),
+          speed: rng.float(0.2, 1.05)
+        });
+      }
+
+      const potTexture = [];
+      for (let i = 0; i < 42; i++) {
+        potTexture.push({
+          x: rng.float(originX - 95, originX + 95),
+          y: rng.float(height - 106, height - 18),
+          alpha: rng.float(0.03, 0.14),
+          size: rng.float(0.6, 2.4)
+        });
+      }
+
+      return {
+        width,
+        height,
+        groundY,
+        maxDepth,
+        stems,
+        leaves,
+        flowers,
+        fruits,
+        thorns,
+        dew,
+        ambience,
+        potTexture,
+        palette: {
+          leaves: LEAF_PALETTES[config.leafColor] || LEAF_PALETTES.green,
+          flower1: FLOWER_PALETTES[config.flowerColor1] || FLOWER_PALETTES.rose,
+          flower2: FLOWER_PALETTES[config.flowerColor2] || FLOWER_PALETTES.sun,
+          fruit: FRUIT_PALETTES[config.fruitStyle] || FRUIT_PALETTES.berry
+        }
+      };
+    }
+
+    function drawBackground(ctx, model, t, windStrength) {
+      const w = model.width;
+      const h = model.height;
+
+      const sky = ctx.createLinearGradient(0, 0, 0, h);
+      sky.addColorStop(0, "#203a2f");
+      sky.addColorStop(0.35, "#182f27");
+      sky.addColorStop(1, "#111d18");
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, w, h);
+
+      const haze = ctx.createRadialGradient(w * 0.58, h * 0.24, 20, w * 0.58, h * 0.24, h * 0.8);
+      haze.addColorStop(0, "rgba(180,255,210,0.18)");
+      haze.addColorStop(1, "rgba(180,255,210,0)");
+      ctx.fillStyle = haze;
+      ctx.fillRect(0, 0, w, h);
+
+      const floor = ctx.createLinearGradient(0, model.groundY - 30, 0, h);
+      floor.addColorStop(0, "#203427");
+      floor.addColorStop(1, "#0f1813");
+      ctx.fillStyle = floor;
+      ctx.fillRect(0, model.groundY - 30, w, h - model.groundY + 30);
+
+      for (const p of model.ambience) {
+        const pulse = (Math.sin(t * p.speed + p.phase) * 0.5 + 0.5) * (0.35 + windStrength * 0.65);
+        ctx.globalAlpha = p.alpha * pulse;
+        ctx.fillStyle = "#b4ffd8";
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, TAU);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawPot(ctx, model) {
+      const cx = model.width * 0.5;
+      const yTop = model.height - 106;
+      const yBottom = model.height - 12;
+      const topW = 206;
+      const bottomW = 142;
+
+      const bodyGradient = ctx.createLinearGradient(cx, yTop, cx, yBottom);
+      bodyGradient.addColorStop(0, "#8d5f4b");
+      bodyGradient.addColorStop(0.5, "#734b3b");
+      bodyGradient.addColorStop(1, "#4c3026");
+
+      ctx.beginPath();
+      ctx.moveTo(cx - topW / 2, yTop);
+      ctx.lineTo(cx + topW / 2, yTop);
+      ctx.lineTo(cx + bottomW / 2, yBottom);
+      ctx.lineTo(cx - bottomW / 2, yBottom);
+      ctx.closePath();
+      ctx.fillStyle = bodyGradient;
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(24,12,8,0.6)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = "#5b3a2d";
+      ctx.beginPath();
+      ctx.ellipse(cx, yTop, topW / 2 + 8, 18, 0, 0, TAU);
+      ctx.fill();
+
+      ctx.fillStyle = "#2a1a14";
+      ctx.beginPath();
+      ctx.ellipse(cx, yTop + 1, topW / 2 - 10, 12, 0, 0, TAU);
+      ctx.fill();
+
+      for (const point of model.potTexture) {
+        ctx.globalAlpha = point.alpha;
+        ctx.fillStyle = "#d9ad93";
+        ctx.fillRect(point.x, point.y, point.size, point.size);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawStems(ctx, model, config, t) {
+      const leafPalette = model.palette.leaves;
+      const windStrength = map01(config.wind);
+      const depthFade01 = map01(config.depthFade ?? 0);
+
+      const stems = [...model.stems].sort((a, b) => a.depth - b.depth);
+
+      const smooth = map01(config.stemSmoothing ?? 100);
+      const tension = mix(0.5, 2.0, map01(config.stemTension ?? 50));
+
+      for (const stem of stems) {
+        const fade = depthFadeFactor(stem.depth, model.maxDepth, depthFade01);
+        const alphaM = 1 - fade * 0.45;
+        const pts = stem.points;
+        if (pts.length < 2) continue;
+
+        const sx = pts.map(p => p.x + getSwayOffset(p, t, windStrength));
+        const sy = pts.map(p => p.y);
+
+        for (let i = 0; i < pts.length - 1; i++) {
+          const progress = i / Math.max(1, pts.length - 2);
+          const width = mix(stem.thicknessStart, stem.thicknessEnd, progress);
+
+          const x0 = sx[i], y0 = sy[i];
+          const x1 = sx[i + 1], y1 = sy[i + 1];
+
+          let drawSegment;
+          if (smooth > 0.01) {
+            const i0 = Math.max(0, i - 1);
+            const i3 = Math.min(pts.length - 1, i + 2);
+            const cp = catmullRomCP(sx[i0], sy[i0], x0, y0, x1, y1, sx[i3], sy[i3], tension);
+            const cx1 = mix(x0 + (x1 - x0) * 0.33, cp.cp1x, smooth);
+            const cy1 = mix(y0 + (y1 - y0) * 0.33, cp.cp1y, smooth);
+            const cx2 = mix(x0 + (x1 - x0) * 0.67, cp.cp2x, smooth);
+            const cy2 = mix(y0 + (y1 - y0) * 0.67, cp.cp2y, smooth);
+            drawSegment = (ox, oy) => {
+              ctx.beginPath();
+              ctx.moveTo(x0 + ox, y0 + oy);
+              ctx.bezierCurveTo(cx1 + ox, cy1 + oy, cx2 + ox, cy2 + oy, x1 + ox, y1 + oy);
+              ctx.stroke();
+            };
+          } else {
+            drawSegment = (ox, oy) => {
+              ctx.beginPath();
+              ctx.moveTo(x0 + ox, y0 + oy);
+              ctx.lineTo(x1 + ox, y1 + oy);
+              ctx.stroke();
+            };
+          }
+
+          ctx.lineCap = "round";
+
+          ctx.globalAlpha = alphaM;
+          ctx.strokeStyle = `rgba(15,25,18,${mix(0.55, 0.8, progress)})`;
+          ctx.lineWidth = width + 2.8;
+          drawSegment(0, 0);
+
+          const colorMix = clamp(progress + stem.hueShift, 0, 1);
+          ctx.strokeStyle = `rgb(${Math.round(mix(48, 77, colorMix))}, ${Math.round(mix(85, 118, colorMix))}, ${Math.round(mix(54, 68, colorMix))})`;
+          ctx.lineWidth = width;
+          drawSegment(0, 0);
+
+          ctx.strokeStyle = leafPalette.light;
+          ctx.globalAlpha = 0.08 * alphaM;
+          ctx.lineWidth = Math.max(1, width * 0.26);
+          drawSegment(-0.7, -0.6);
+
+          ctx.globalAlpha = 1;
+        }
+      }
+    }
+
+    function createLeafPath(ctx, style, len, w, serrated) {
+      ctx.beginPath();
+      if (style === "heart") {
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(len * 0.18, -w * 1.2, len * 0.45, -w * 1.1, len * 0.55, -w * 0.35);
+        ctx.bezierCurveTo(len * 0.7, -w * 0.85, len * 0.98, -w * 0.32, len, 0);
+        ctx.bezierCurveTo(len * 0.98, w * 0.32, len * 0.7, w * 0.85, len * 0.55, w * 0.35);
+        ctx.bezierCurveTo(len * 0.45, w * 1.1, len * 0.18, w * 1.2, 0, 0);
+      } else if (serrated) {
+        const teeth = clamp(Math.round(len / 10), 4, 12);
+        ctx.moveTo(0, 0);
+        for (let i = 1; i <= teeth; i++) {
+          const t = i / teeth;
+          const x = len * t;
+          const baseY = -Math.sin(t * Math.PI) * w;
+          const jag = (i % 2 === 0 ? -1 : 1) * w * 0.18;
+          ctx.lineTo(x - len / teeth * 0.4, baseY + jag);
+          ctx.lineTo(x, baseY);
+        }
+        for (let i = teeth; i >= 1; i--) {
+          const t = i / teeth;
+          const x = len * t;
+          const baseY = Math.sin(t * Math.PI) * w;
+          const jag = (i % 2 === 0 ? 1 : -1) * w * 0.18;
+          ctx.lineTo(x - len / teeth * 0.4, baseY + jag);
+          ctx.lineTo(x, baseY);
+        }
+        ctx.closePath();
+      } else if (style === "lance") {
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(len * 0.32, -w * 1.35, len, 0);
+        ctx.quadraticCurveTo(len * 0.32, w * 1.35, 0, 0);
+      } else {
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(len * 0.22, -w * 1.05, len * 0.75, -w * 0.78, len, 0);
+        ctx.bezierCurveTo(len * 0.75, w * 0.78, len * 0.22, w * 1.05, 0, 0);
+      }
+    }
+
+    function drawLeaves(ctx, model, config, t) {
+      const windStrength = map01(config.wind);
+      const palette = model.palette.leaves;
+      const depthFade01 = map01(config.depthFade ?? 0);
+
+      const leaves = [...model.leaves].sort((a, b) => a.depth - b.depth || a.y - b.y);
+      for (const leaf of leaves) {
+        const fade = depthFadeFactor(leaf.depth, model.maxDepth, depthFade01);
+        const alphaM = 1 - fade * 0.45;
+        const scaleM = 1 - fade * 0.08;
+        const swayX = Math.sin(t * leaf.swayFreq + leaf.swayPhase) * (12 * leaf.swayAmp * windStrength);
+        const swayA = Math.sin(t * (leaf.swayFreq * 1.3) + leaf.swayPhase) * (0.25 * leaf.swayAmp * windStrength);
+
+        ctx.save();
+        ctx.translate(leaf.x + swayX, leaf.y);
+        ctx.rotate(leaf.angle + swayA + leaf.twist);
+        ctx.scale(scaleM, scaleM);
+        ctx.globalAlpha = alphaM;
+
+        createLeafPath(ctx, leaf.style, leaf.length, leaf.width, leaf.serrated);
+
+        const grad = ctx.createLinearGradient(0, -leaf.width, leaf.length, leaf.width);
+        grad.addColorStop(0, palette.dark);
+        grad.addColorStop(0.42, palette.main);
+        grad.addColorStop(1, palette.light);
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(19, 46, 32, 0.85)";
+        ctx.lineWidth = 1.8;
+        ctx.lineJoin = "round";
+        ctx.stroke();
+
+        ctx.globalAlpha = 0.55 * alphaM;
+        ctx.strokeStyle = palette.vein;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(leaf.length, 0);
+        ctx.stroke();
+
+        for (let i = 1; i <= leaf.veinCount; i++) {
+          const tt = i / (leaf.veinCount + 1);
+          const vx = leaf.length * tt;
+          const vy = Math.sin(tt * Math.PI) * leaf.width * 0.62;
+          const s = i % 2 === 0 ? 1 : -1;
+          ctx.beginPath();
+          ctx.moveTo(vx, 0);
+          ctx.lineTo(vx - leaf.length * 0.12, vy * s * 0.6);
+          ctx.stroke();
+        }
+
+        if (leaf.variegation > 0.01) {
+          ctx.globalAlpha = (0.08 + leaf.variegation * 0.2) * alphaM;
+          ctx.strokeStyle = "#f5ffe3";
+          for (let i = 0; i < 3; i++) {
+            const y = (i - 1) * leaf.width * 0.32;
+            ctx.beginPath();
+            ctx.moveTo(leaf.length * 0.16, y);
+            ctx.quadraticCurveTo(leaf.length * 0.46, y * 0.75, leaf.length * 0.88, y * 0.34);
+            ctx.stroke();
+          }
+        }
+
+        ctx.restore();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    function drawThorns(ctx, model, config, t) {
+      if (!config.thornsEnabled || !model.thorns.length) return;
+      const windStrength = map01(config.wind);
+      const depthFade01 = map01(config.depthFade ?? 0);
+
+      ctx.strokeStyle = "#3d1f1d";
+      ctx.lineCap = "round";
+      for (const thorn of model.thorns) {
+        const fade = depthFadeFactor(thorn.depth, model.maxDepth, depthFade01);
+        ctx.globalAlpha = 1 - fade * 0.45;
+        const sway = Math.sin(t * 1.1 + thorn.x * 0.01) * (1.4 * windStrength);
+        const x = thorn.x + sway;
+        const y = thorn.y;
+        const tx = x + Math.cos(thorn.angle) * thorn.len;
+        const ty = y + Math.sin(thorn.angle) * thorn.len;
+
+        ctx.lineWidth = Math.max(0.7, mix(1.8, 0.7, thorn.depth / 5));
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawFruits(ctx, model, config, t) {
+      if (!config.fruitEnabled) return;
+
+      const windStrength = map01(config.wind);
+      const palette = model.palette.fruit;
+      const depthFade01 = map01(config.depthFade ?? 0);
+
+      for (const fruit of model.fruits) {
+        const fade = depthFadeFactor(fruit.depth, model.maxDepth, depthFade01);
+        const alphaM = 1 - fade * 0.45;
+        const sway = Math.sin(t * fruit.swayFreq + fruit.swayPhase) * (8.2 * fruit.swayAmp * windStrength);
+        const x = fruit.x + sway;
+        const y = fruit.y;
+        const angle = fruit.angle + Math.sin(t * 0.8 + fruit.swayPhase) * 0.16;
+        ctx.globalAlpha = alphaM;
+
+        ctx.strokeStyle = "rgba(46, 62, 36, 0.8)";
+        ctx.lineWidth = Math.max(1, mix(2.2, 1.1, fruit.depth / 5));
+        ctx.beginPath();
+        ctx.moveTo(fruit.x, fruit.y);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+
+        const g = ctx.createRadialGradient(-fruit.rx * 0.2, -fruit.ry * 0.35, 1, 0, 0, fruit.rx * 1.3);
+        g.addColorStop(0, palette.light);
+        g.addColorStop(0.5, palette.main);
+        g.addColorStop(1, palette.dark);
+
+        ctx.fillStyle = g;
+
+        if (fruit.style === "pod") {
+          ctx.beginPath();
+          ctx.ellipse(0, 0, fruit.rx * 1.15, fruit.ry * 0.66, 0, 0, TAU);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(71,48,20,0.5)";
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(-fruit.rx * 0.9, 0);
+          ctx.lineTo(fruit.rx * 0.9, 0);
+          ctx.stroke();
+        } else if (fruit.style === "pear") {
+          ctx.beginPath();
+          ctx.moveTo(0, -fruit.ry * 1.1);
+          ctx.bezierCurveTo(fruit.rx * 0.85, -fruit.ry * 0.95, fruit.rx * 0.92, fruit.ry * 0.4, 0, fruit.ry * 1.05);
+          ctx.bezierCurveTo(-fruit.rx * 0.92, fruit.ry * 0.4, -fruit.rx * 0.85, -fruit.ry * 0.95, 0, -fruit.ry * 1.1);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(49,64,25,0.4)";
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.ellipse(0, 0, fruit.rx, fruit.ry, 0, 0, TAU);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(49,25,59,0.38)";
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = "rgba(255,255,255,0.38)";
+        ctx.beginPath();
+        ctx.ellipse(-fruit.rx * 0.22, -fruit.ry * 0.2, fruit.rx * 0.24, fruit.ry * 0.18, 0, 0, TAU);
+        ctx.fill();
+
+        ctx.restore();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    function petalPath(ctx, style, len, w, curl) {
+      curl = curl || 0;
+      ctx.beginPath();
+      if (style === "star") {
+        const tipX = len + curl * len * 0.3;
+        const tipY = curl * w * 0.4;
+        ctx.moveTo(0, 0);
+        ctx.lineTo(len * 0.2, -w * 0.55);
+        ctx.lineTo(tipX, tipY);
+        ctx.lineTo(len * 0.2, w * 0.55);
+        ctx.closePath();
+      } else if (style === "bell") {
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(len * 0.12, -w * 0.45, len * 0.84, -w * (1.15 + curl * 0.3), len * (1 + curl * 0.15), curl * w * 0.2);
+        ctx.bezierCurveTo(len * 0.84, w * (1.15 + curl * 0.3), len * 0.12, w * 0.45, 0, 0);
+      } else {
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(len * 0.2, -w * (0.95 + curl * 0.2), len * 0.88, -w * (0.75 + curl * 0.15), len * (1 + curl * 0.1), curl * w * 0.15);
+        ctx.bezierCurveTo(len * 0.88, w * (0.75 + curl * 0.15), len * 0.2, w * (0.95 + curl * 0.2), 0, 0);
+      }
+    }
+
+    function drawFlowers(ctx, model, config, t) {
+      const windStrength = map01(config.wind);
+      const c1 = model.palette.flower1;
+      const c2 = model.palette.flower2;
+      const depthFade01 = map01(config.depthFade ?? 0);
+
+      const flowers = [...model.flowers].sort((a, b) => a.depth - b.depth || a.y - b.y);
+
+      for (const flower of flowers) {
+        const fade = depthFadeFactor(flower.depth, model.maxDepth, depthFade01);
+        const alphaM = 1 - fade * 0.45;
+        const scaleM = 1 - fade * 0.08;
+        const sway = Math.sin(t * flower.swayFreq + flower.swayPhase) * (13 * flower.swayAmp * windStrength);
+        const flutter = Math.sin(t * (flower.swayFreq * 1.9) + flower.swayPhase) * (0.18 * windStrength);
+        const x = flower.x + sway;
+        const y = flower.y;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scaleM, scaleM);
+        ctx.globalAlpha = alphaM;
+
+        if (flower.style === "bell") {
+          ctx.rotate(Math.PI / 2 + flutter * 0.35);
+        } else {
+          ctx.rotate(flower.rotation + flutter);
+        }
+
+        // -- Vrstveny rendering: prstence zvenku dovnitr --
+        const numRings = flower.style === "daisy" ? 2 : flower.style === "star" ? 2 : 4;
+        const basePetals = flower.petals;
+        const baseLen = flower.size * mix(0.62, 1.22, flower.spread) * (flower.style === "daisy" ? 0.82 : 1);
+        const baseWidth = flower.size * (flower.style === "star" ? 0.25 : flower.style === "bell" ? 0.38 : 0.32);
+        let pdIdx = 0;
+
+        for (let ring = 0; ring < numRings; ring++) {
+          const ringT = ring / Math.max(1, numRings - 1); // 0=outer, 1=inner
+          const ringPetals = Math.max(3, Math.round(basePetals * mix(1.0, 0.5, ringT)));
+          const ringLen = baseLen * mix(1.0, 0.38, ringT);
+          const ringWidth = baseWidth * mix(1.0, 0.55, ringT);
+          const ringAngleOff = ring * 0.4; // stagger mezi prstenci
+          // vnitrni prstence kreslime vyse (simulace 3D pohledu shora)
+          const ringYOff = -ring * flower.size * 0.06;
+
+          ctx.save();
+          ctx.translate(0, ringYOff);
+
+          for (let i = 0; i < ringPetals; i++) {
+            const pd = flower.petalData[pdIdx % flower.petalData.length];
+            pdIdx++;
+            const tt = i / ringPetals;
+            const angle = tt * TAU + ringAngleOff + pd.angleOffset;
+            const pLen = ringLen * pd.lenScale;
+            const pWid = ringWidth * pd.widthScale;
+            // vnitrni lístky mají víc curl (zavírají se dovnitř)
+            const ringCurl = pd.curl + ringT * 0.15;
+
+            ctx.save();
+            ctx.rotate(angle);
+            ctx.rotate(pd.twist);
+
+            const blend = (i % 2 === 0 ? 0.3 : 0.7) + Math.sin(angle * 2.3) * 0.08;
+            const main = blend > 0.5 ? c1 : c2;
+            const alt = blend > 0.5 ? c2 : c1;
+
+            petalPath(ctx, flower.style, pLen, pWid, ringCurl);
+
+            // gradient: tmavsi baze, svetlejsi spicka
+            const petalGrad = ctx.createLinearGradient(0, 0, pLen, 0);
+            petalGrad.addColorStop(0, main.dark);
+            petalGrad.addColorStop(0.3, main.main);
+            petalGrad.addColorStop(0.7, alt.light);
+            petalGrad.addColorStop(1, mix(0, 1, ringT) > 0.5 ? main.main : alt.light);
+            ctx.fillStyle = petalGrad;
+            ctx.fill();
+
+            // tmavý outline — klicovy pro botanicky styl
+            ctx.strokeStyle = `rgba(40,20,25,${mix(0.5, 0.7, ringT)})`;
+            ctx.lineWidth = mix(1.8, 1.2, ringT);
+            ctx.stroke();
+
+            ctx.restore();
+          }
+
+          ctx.restore();
+        }
+
+        // stred kvetu
+        const coreRadius = flower.style === "daisy" ? flower.size * 0.28 : flower.size * 0.16;
+
+        const centerGrad = ctx.createRadialGradient(-coreRadius * 0.2, -coreRadius * 0.22, 1, 0, 0, coreRadius * 1.4);
+        centerGrad.addColorStop(0, c1.center);
+        centerGrad.addColorStop(1, c2.dark);
+        ctx.fillStyle = centerGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, coreRadius, 0, TAU);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(40,20,25,0.5)";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.globalAlpha = 0.5 * alphaM;
+        for (let i = 0; i < flower.pollenDots; i++) {
+          const rr = Math.sqrt((i + 0.5) / flower.pollenDots) * coreRadius * 0.88;
+          const aa = i * 2.399963;
+          ctx.fillStyle = i % 2 === 0 ? c1.dark : c2.light;
+          ctx.fillRect(Math.cos(aa) * rr, Math.sin(aa) * rr, 1.4, 1.4);
+        }
+        ctx.globalAlpha = alphaM;
+
+        if (config.glowEnabled) {
+          ctx.globalCompositeOperation = "lighter";
+          const glow = ctx.createRadialGradient(0, 0, 1, 0, 0, flower.size * 2.15);
+          glow.addColorStop(0, "rgba(255, 240, 170, 0.28)");
+          glow.addColorStop(0.6, "rgba(168, 255, 212, 0.14)");
+          glow.addColorStop(1, "rgba(168, 255, 212, 0)");
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(0, 0, flower.size * 2.15, 0, TAU);
+          ctx.fill();
+          ctx.globalCompositeOperation = "source-over";
+        }
+
+        ctx.restore();
+      }
+    }
+
+    function drawDew(ctx, model, config, t) {
+      if (!config.leafDew || !model.dew.length) return;
+      const windStrength = map01(config.wind);
+      const depthFade01 = map01(config.depthFade ?? 0);
+
+      for (const drop of model.dew) {
+        const fade = depthFadeFactor(drop.depth, model.maxDepth, depthFade01);
+        const alphaM = 1 - fade * 0.45;
+        const pulse = Math.sin(t * 1.8 + drop.phase) * 0.5 + 0.5;
+        const sway = Math.sin(t * 1.25 + drop.phase) * (1.4 * windStrength);
+        const x = drop.x + sway;
+        const y = drop.y;
+
+        ctx.globalAlpha = alphaM;
+        const grad = ctx.createRadialGradient(x - drop.r * 0.4, y - drop.r * 0.45, 0.4, x, y, drop.r * 1.6);
+        grad.addColorStop(0, `rgba(230,255,255,${0.65 + pulse * 0.2})`);
+        grad.addColorStop(1, "rgba(125,205,235,0.05)");
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(x, y, drop.r, 0, TAU);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function renderPlant() {
+      const t0 = performance.now();
+      const { ctx, model, config } = state;
+      if (!model || !config) return;
+
+      const t = state.time;
+      drawBackground(ctx, model, t, map01(config.wind));
+      drawPot(ctx, model);
+      drawStems(ctx, model, config, t);
+      drawThorns(ctx, model, config, t);
+      drawLeaves(ctx, model, config, t);
+      drawFruits(ctx, model, config, t);
+      drawFlowers(ctx, model, config, t);
+      drawDew(ctx, model, config, t);
+
+      state.lastRenderMs = performance.now() - t0;
+      const textState = JSON.parse(renderGameToText());
+      state.hud.textContent = [
+        `seed: ${state.seed}`,
+        `stems: ${textState.counts.stems}  leaves: ${textState.counts.leaves}`,
+        `flowers: ${textState.counts.flowers}  fruits: ${textState.counts.fruits}`,
+        `render: ${state.lastRenderMs.toFixed(2)} ms  t: ${state.time.toFixed(2)}s`
+      ].join("\n");
+    }
+
+    function rebuildModel() {
+      state.config = getConfigFromUI();
+      state.seed = state.config.seed;
+      state.animating = state.config.animate;
+      state.model = buildPlantModel(state.config);
+      renderPlant();
+    }
+
+    function mutateCurrentConfig() {
+      const jitter = (v, amount = 12) => clamp(v + Math.round((Math.random() * 2 - 1) * amount), 0, 100);
+      refs.branchDensity.value = String(jitter(Number(refs.branchDensity.value), 14));
+      refs.complexity.value = String(jitter(Number(refs.complexity.value), 14));
+      refs.stemThickness.value = String(jitter(Number(refs.stemThickness.value), 12));
+      refs.curve.value = String(jitter(Number(refs.curve.value), 16));
+      refs.leafSize.value = String(jitter(Number(refs.leafSize.value), 16));
+      refs.variegation.value = String(jitter(Number(refs.variegation.value), 25));
+      refs.flowerSize.value = String(jitter(Number(refs.flowerSize.value), 16));
+      refs.wind.value = String(jitter(Number(refs.wind.value), 18));
+      refs.animSpeed.value = String(jitter(Number(refs.animSpeed.value), 12));
+      refs.seedInput.value = randomSeed();
+      rebuildModel();
+    }
+
+    function animationLoop(ts) {
+      if (!state.lastTs) state.lastTs = ts;
+      const dt = Math.min(0.05, (ts - state.lastTs) / 1000);
+      state.lastTs = ts;
+
+      if (state.animating) {
+        const speed = mix(0.35, 2.1, map01(refs.animSpeed.value));
+        state.time += dt * speed;
+      }
+
+      renderPlant();
+      state.frameId = requestAnimationFrame(animationLoop);
+    }
+
+    function renderGameToText() {
+      if (!state.model || !state.config) {
+        return JSON.stringify({
+          mode: "init",
+          note: "origin: top-left; +x right; +y down"
+        });
+      }
+
+      const tipFlower = state.model.flowers[0] || null;
+      const tipStem = state.model.stems[0]?.points.at(-1) || null;
+
+      return JSON.stringify({
+        mode: "editor",
+        note: "origin: top-left; +x right; +y down",
+        seed: state.seed,
+        species: state.config.species,
+        growthStyle: state.config.growthStyle,
+        animate: state.animating,
+        time: Number(state.time.toFixed(3)),
+        counts: {
+          stems: state.model.stems.length,
+          leaves: state.model.leaves.length,
+          flowers: state.model.flowers.length,
+          fruits: state.model.fruits.length,
+          thorns: state.model.thorns.length
+        },
+        anchor: tipStem
+          ? { x: Number(tipStem.x.toFixed(2)), y: Number(tipStem.y.toFixed(2)) }
+          : null,
+        sampleFlower: tipFlower
+          ? {
+              x: Number(tipFlower.x.toFixed(2)),
+              y: Number(tipFlower.y.toFixed(2)),
+              size: Number(tipFlower.size.toFixed(2)),
+              petals: tipFlower.petals,
+              style: tipFlower.style
+            }
+          : null
+      });
+    }
+
+    window.render_game_to_text = renderGameToText;
+
+    window.advanceTime = (ms) => {
+      const seconds = clamp(ms, 0, 60000) / 1000;
+      if (!Number.isFinite(seconds)) return;
+      const speed = mix(0.35, 2.1, map01(refs.animSpeed.value));
+      state.time += seconds * speed;
+      renderPlant();
+    };
+
+    function attachEvents() {
+      refs.btnGenerate.addEventListener("click", () => {
+        rebuildModel();
+      });
+
+      refs.btnRandom.addEventListener("click", () => {
+        refs.seedInput.value = randomSeed();
+        rebuildModel();
+      });
+
+      refs.btnMutate.addEventListener("click", () => {
+        mutateCurrentConfig();
+      });
+
+      refs.btnExport.addEventListener("click", async () => {
+        try {
+          const payload = {
+            config: getConfigFromUI(),
+            state: JSON.parse(renderGameToText())
+          };
+          await copyTextToClipboard(JSON.stringify(payload, null, 2));
+          alert("Seed karta + stav zkopirovany do schranky.");
+        } catch (err) {
+          console.error("Export selhal:", err);
+          alert("Export selhal. Otevri app pres HTTP/HTTPS nebo zkopiruj data rucne.");
+        }
+      });
+
+      refs.btnPreset.addEventListener("click", () => {
+        applyPreset(refs.species.value, true);
+        rebuildModel();
+      });
+
+      refs.btnReset.addEventListener("click", () => {
+        refs.species.value = "hybrid";
+        refs.seedInput.value = "genetix-rose-01";
+        applyPreset("hybrid", true);
+        refs.animateToggle.checked = true;
+        refs.leafDew.checked = false;
+        rebuildModel();
+      });
+
+      refs.species.addEventListener("change", () => {
+        applyPreset(refs.species.value, true);
+        rebuildModel();
+      });
+
+      refs.animateToggle.addEventListener("change", () => {
+        state.animating = refs.animateToggle.checked;
+        state.config = getConfigFromUI();
+        renderPlant();
+      });
+
+      const liveInputs = document.querySelectorAll(
+        "#growth-style, #complexity, #branch-density, #stem-thickness, #curve, #wind, #stem-smoothing, #stem-tension, #depth-fade, #leaf-style, #leaf-size, #leaf-color, #variegation, #leaf-serration, #leaf-dew, #flower-style, #flower-size, #petal-variation, #flower-color-1, #flower-color-2, #fruit-enabled, #fruit-style, #glow-enabled, #thorns-enabled, #anim-speed"
+      );
+
+      liveInputs.forEach((el) => {
+        el.addEventListener("change", rebuildModel);
+        if (el instanceof HTMLInputElement && el.type === "range") {
+          el.addEventListener("input", rebuildModel);
+        }
+      });
+
+      refs.seedInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") rebuildModel();
+      });
+    }
+
+    function bootstrap() {
+      applyPreset("hybrid", true);
+      attachEvents();
+      rebuildModel();
+      state.frameId = requestAnimationFrame(animationLoop);
+    }
+
+    bootstrap();
+  </script>
+</body>
+</html>
