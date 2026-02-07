@@ -191,7 +191,7 @@
     <h1>Botanic Lab 3 - Modulární galerie</h1>
     <p>
       Galerie je teď čistě po modulech: jen květy, druhy květů, jen listy, jen stonky, jen plody.
-      Každá karta otevírá stejné nastavení v <code>index3.html</code>.
+      Každá karta otevírá stejné nastavení v <code>exports/html/index3.html</code>.
     </p>
     <div class="legend">
       <span class="chip">A: jen květy</span>
@@ -552,8 +552,8 @@
     }
 
     function cardMarkup(variant) {
-      const previewHref = `index3.html?${toQuery(variant.params, true)}`;
-      const editHref = `index3.html?${toQuery(variant.params, false)}`;
+      const previewHref = `exports/html/index3.html?${toQuery(variant.params, true)}`;
+      const editHref = `exports/html/index3.html?${toQuery(variant.params, false)}`;
       const tagsHtml = variant.tags.map((tag) => `<span class="tag">${tag}</span>`).join("");
       return `
         <article class="card">

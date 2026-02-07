@@ -37,6 +37,8 @@ npm run check
 - `src/renderers`: plant part renderers (stem, leaves, flowers, accessories, pot).
 - `src/orchestrator`: full render pipeline coordination.
 - `src/ui`: DOM controls, app lifecycle, animation, export behavior.
+- `screenshots`: visual references and iteration outputs (PNG/MOV assets).
+- `exports/html`: legacy standalone HTML experiment builds (`index2/3/4`).
 - `tests`: unit and integration tests with mock canvas.
 
 More details are in `docs/ARCHITECTURE.md`.
