@@ -37,9 +37,9 @@ export function installErrorMonitor(): void {
   }
 
   isInstalled = true;
-  window.__genetixTelemetry = telemetryBuffer;
+  window.__pixelfloraTelemetry = telemetryBuffer;
 
-  window.addEventListener('genetix:error', (event: Event) => {
+  window.addEventListener('pixelflora:error', (event: Event) => {
     const customEvent = event as CustomEvent<{
       code: AppErrorCode;
       message: string;
@@ -85,6 +85,6 @@ export function installErrorMonitor(): void {
 
 declare global {
   interface Window {
-    __genetixTelemetry?: ErrorTelemetryEvent[];
+    __pixelfloraTelemetry?: ErrorTelemetryEvent[];
   }
 }

@@ -2,11 +2,11 @@
 set -euo pipefail
 
 OWNER="${1:-}"
-REPO="${2:-genetix}"
+REPO="${2:-pixelflora}"
 VISIBILITY="${3:-public}"
 
 if [[ -z "$OWNER" ]]; then
-  echo "Usage: $0 <owner> [repo=genetix] [visibility=public|private]"
+  echo "Usage: $0 <owner> [repo=pixelflora] [visibility=public|private]"
   exit 1
 fi
 

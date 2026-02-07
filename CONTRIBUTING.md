@@ -1,4 +1,4 @@
-# Contributing to Genetix
+# Contributing to PixelFlora
 
 Thanks for contributing. This project is intentionally strict on quality because reproducibility and maintainability are core goals.
 

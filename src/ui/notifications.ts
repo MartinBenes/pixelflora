@@ -68,7 +68,7 @@ export function logAppError(
   const detail = { code, message, context };
 
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('genetix:error', { detail }));
+    window.dispatchEvent(new CustomEvent('pixelflora:error', { detail }));
   }
 
   if (typeof globalThis.reportError === 'function') {

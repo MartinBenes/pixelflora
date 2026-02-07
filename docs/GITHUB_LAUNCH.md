@@ -1,6 +1,6 @@
 # GitHub Launch Guide
 
-This guide is the canonical checklist for publishing Genetix on GitHub with enterprise-grade defaults.
+This guide is the canonical checklist for publishing PixelFlora on GitHub with enterprise-grade defaults.
 
 ## Prerequisites
 
@@ -20,7 +20,7 @@ gh auth status
 Automated option (recommended):
 
 ```bash
-./scripts/github-bootstrap.sh <owner> genetix public
+./scripts/github-bootstrap.sh <owner> pixelflora public
 ```
 
 Manual option:
@@ -28,20 +28,20 @@ Manual option:
 If the repository does not exist yet:
 
 ```bash
-gh repo create <owner>/genetix --public --source=. --remote=origin --push
+gh repo create <owner>/pixelflora --public --source=. --remote=origin --push
 ```
 
 If the repository already exists:
 
 ```bash
-git remote add origin git@github.com:<owner>/genetix.git
+git remote add origin git@github.com:<owner>/pixelflora.git
 git push -u origin main
 ```
 
 ## 3. Enable GitHub security features
 
 ```bash
-gh api -X PATCH repos/<owner>/genetix \
+gh api -X PATCH repos/<owner>/pixelflora \
   -f has_issues=true \
   -f has_projects=false \
   -f has_wiki=false \
@@ -51,7 +51,7 @@ gh api -X PATCH repos/<owner>/genetix \
 ## 4. Protect `main` branch
 
 ```bash
-gh api -X PUT repos/<owner>/genetix/branches/main/protection \
+gh api -X PUT repos/<owner>/pixelflora/branches/main/protection \
   -H "Accept: application/vnd.github+json" \
   -f required_status_checks.strict=true \
   -f required_status_checks.contexts[]="Quality Gate" \

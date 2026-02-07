@@ -1,8 +1,8 @@
-# Genetix
+# PixelFlora
 
 Procedural plant generator focused on deterministic pixel-art rendering with a strict engineering baseline for open source collaboration.
 
-![Genetix animation](docs/assets/animation.gif)
+![PixelFlora animation](docs/assets/animation.gif)
 
 ## Why this project
 
@@ -66,7 +66,7 @@ See `CONTRIBUTING.md`.
 After authenticating GitHub CLI, you can bootstrap repository settings with:
 
 ```bash
-./scripts/github-bootstrap.sh <owner> genetix public
+./scripts/github-bootstrap.sh <owner> pixelflora public
 ```
 
 ## Security
