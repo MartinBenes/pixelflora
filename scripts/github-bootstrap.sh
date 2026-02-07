@@ -47,13 +47,33 @@ gh api -X PATCH "repos/${FULL_REPO}" \
   -f delete_branch_on_merge=true
 
 echo "Applying branch protection for main."
+BRANCH_PROTECTION_PAYLOAD="$(mktemp)"
+cat > "$BRANCH_PROTECTION_PAYLOAD" <<JSON
+{
+  "required_status_checks": {
+    "strict": true,
+    "contexts": ["Quality Gate"]
+  },
+  "enforce_admins": true,
+  "required_pull_request_reviews": {
+    "dismiss_stale_reviews": true,
+    "required_approving_review_count": 1
+  },
+  "restrictions": null,
+  "required_linear_history": true,
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "block_creations": false,
+  "required_conversation_resolution": true,
+  "lock_branch": false,
+  "allow_fork_syncing": false
+}
+JSON
+
 gh api -X PUT "repos/${FULL_REPO}/branches/main/protection" \
   -H "Accept: application/vnd.github+json" \
-  -f required_status_checks.strict=true \
-  -f required_status_checks.contexts[]="Quality Gate" \
-  -f enforce_admins=true \
-  -f required_pull_request_reviews.required_approving_review_count=1 \
-  -f required_pull_request_reviews.dismiss_stale_reviews=true \
-  -f restrictions=
+  --input "$BRANCH_PROTECTION_PAYLOAD"
+
+rm -f "$BRANCH_PROTECTION_PAYLOAD"
 
 echo "Bootstrap completed for ${FULL_REPO}."
