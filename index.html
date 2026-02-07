@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procedurální Generátor Rostlin (Pixel Art)</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1d;
+            --panel-bg: #2d2d35;
+            --text-color: #e0e0e0;
+            --accent: #4caf50;
+            --border: #444;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Layout */
+        .container {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .controls {
+            flex: 1;
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .preview-area {
+            flex: 2;
+            background: #111;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background-image: radial-gradient(#333 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* UI Elements */
+        h2, h3 { margin-top: 0; color: var(--accent); }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #444;
+        }
+
+        label { font-size: 0.9em; color: #aaa; }
+        
+        select, input[type="text"] {
+            background: #222;
+            border: 1px solid #555;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        input[type="checkbox"] {
+            transform: scale(1.2);
+            accent-color: var(--accent);
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+
+        button:hover { opacity: 0.9; }
+        button.secondary { background: #555; }
+
+        /* Canvas rendering */
+        canvas {
+            image-rendering: pixelated; /* Klíčové pro ostrý pixel art */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background: transparent;
+        }
+
+        .canvas-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .meta-info {
+            font-family: monospace;
+            color: #888;
+            font-size: 0.8em;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        #seed-display {
+            font-family: monospace;
+            background: #000;
+            padding: 5px 10px;
+            border-radius: 4px;
+            color: var(--accent);
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Ovládací panel (Fenotyp + Seed) -->
+    <div class="controls">
+        <h2>Laboratoř</h2>
+        
+        <div class="control-group">
+            <label for="input-seed">Seed (Řetězec nebo číslo)</label>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="input-seed" value="rostlina1" style="flex:1">
+                <button class="secondary" id="btn-random-seed">🎲</button>
+            </div>
+        </div>
+
+        <h3>Genotyp (Fenotyp)</h3>
+        
+        <div class="control-group">
+            <label>Stonek: Tvar / Tloušťka / Povrch</label>
+            <div style="display:flex; gap:5px;">
+                <select id="gene-stem" style="flex:1">
+                    <option value="straight">Rovný</option>
+                    <option value="vine">Liána</option>
+                </select>
+                <select id="gene-stem-thickness" style="flex:1">
+                    <option value="thin">Tenký</option>
+                    <option value="thick">Tlustý</option>
+                </select>
+                <select id="gene-stem-texture" style="flex:1">
+                    <option value="smooth">Hladký</option>
+                    <option value="hairy">Chlupatý</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Listy: Tvar / Velikost / Okraj</label>
+            <div style="display:flex; gap:5px;">
+                <select id="gene-leaf" style="flex:1">
+                    <option value="narrow">Úzké</option>
+                    <option value="wide">Široké</option>
+                </select>
+                <select id="gene-leaf-size" style="flex:1">
+                    <option value="small">Malé</option>
+                    <option value="medium" selected>Střední</option>
+                    <option value="large">Velké</option>
+                </select>
+            </div>
+             <select id="gene-leaf-edge" style="margin-top:5px;">
+                <option value="smooth">Hladký okraj</option>
+                <option value="serrated">Zoubkovaný (Pilovitý)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="gene-foliage-color">Barva rostliny (Foliage)</label>
+            <select id="gene-foliage-color">
+                <option value="green">Zelená (Green)</option>
+                <option value="teal">Sivá/Modrá (Teal)</option>
+                <option value="autumn">Podzimní (Autumn)</option>
+                <option value="dark">Tmavá (Dark)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>Květ: Tvar / Velikost / Vzor</label>
+            <div style="display:flex; gap:5px;">
+                <select id="gene-flower-shape" style="flex:1">
+                    <option value="round">Oblé</option>
+                    <option value="pointy">Špičaté</option>
+                </select>
+                <select id="gene-flower-size" style="flex:1">
+                    <option value="small">Malý</option>
+                    <option value="medium" selected>Střední</option>
+                    <option value="large">Velký</option>
+                </select>
+            </div>
+            <select id="gene-flower-pattern" style="margin-top:5px;">
+                <option value="plain">Bez vzoru</option>
+                <option value="stripes">Pruhy</option>
+                <option value="dots">Tečky</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>Barvy květu (Primární / Sekundární)</label>
+            <div style="display:flex; gap:5px;">
+                <select id="gene-color" style="flex:1">
+                    <option value="red">Červená</option>
+                    <option value="blue">Modrá</option>
+                    <option value="purple">Fialová</option>
+                    <option value="white">Bílá</option>
+                    <option value="yellow">Žlutá</option>
+                </select>
+                <select id="gene-color-2" style="flex:1">
+                    <option value="red">Červená</option>
+                    <option value="blue">Modrá</option>
+                    <option value="purple">Fialová</option>
+                    <option value="white">Bílá</option>
+                    <option value="yellow">Žlutá</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label for="gene-sex">Pohlaví květu</label>
+            <select id="gene-sex">
+                <option value="hermaphrodite">Hermafrodit (Pestík + Tyčinky)</option>
+                <option value="female">Samičí (Jen Pestík)</option>
+                <option value="male">Samčí (Jen Tyčinky)</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label for="gene-fruit-shape">Tvar plodu</label>
+            <select id="gene-fruit-shape">
+                <option value="round">Kulatý</option>
+                <option value="oval">Oválný</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label class="checkbox-row" style="margin-bottom: 5px;">
+                <input type="checkbox" id="animate-toggle">
+                <span style="color: var(--accent); font-weight:bold;">Animace (Idle)</span>
+            </label>
+        </div>
+
+        <div class="checkbox-row">
+            <label class="checkbox-row" style="flex:1">
+                <input type="checkbox" id="gene-thorns">
+                <span>Trnité</span>
+            </label>
+             <label class="checkbox-row" style="flex:1">
+                <input type="checkbox" id="gene-fruit">
+                <span>Plodící</span>
+            </label>
+        </div>
+
+        <div class="control-group">
+            <label class="checkbox-row">
+                <input type="checkbox" id="gene-glow">
+                <span>Bioluminiscence (Glow)</span>
+            </label>
+        </div>
+
+        <button id="btn-generate">Generovat Rostlinu</button>
+        <button id="btn-export" class="secondary">Kopírovat Seed Kartu</button>
+    </div>
+
+    <!-- Výhledová plocha -->
+    <div class="preview-area">
+        <div class="canvas-container">
+            <!-- Canvas 64x96 -->
+            <canvas id="plantCanvas" width="64" height="96" style="width: 320px; height: 480px;"></canvas>
+            <div class="meta-info">
+                <span id="seed-display">Seed: --</span><br>
+                <span id="time-display">Render: 0ms | Frame: 0</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * === PALETY A KONSTANTY ===
+ */
+const PALETTES = {
+    // Varianty barev pro stonek a listy
+    foliage: {
+        green: { light: '#8bc34a', main: '#558b2f', dark: '#33691e' },
+        teal:  { light: '#80cbc4', main: '#00897b', dark: '#004d40' },
+        autumn: { light: '#ffcc80', main: '#ef6c00', dark: '#e65100' }, // Do rezava
+        dark:  { light: '#90a4ae', main: '#455a64', dark: '#263238' }  // Tmavě šedomodrá
+    },
+    pot: { light: '#d7ccc8', main: '#8d6e63', dark: '#5d4037', soil: '#3e2723' },
+    thorns: { main: '#3e2723', light: '#5d4037' }, // Tmavá
+    // Pole možných barev plodů - vybírá se podle seedu
+    fruits: [
+        { light: '#ff8a65', main: '#d84315', dark: '#bf360c' }, // Oranžová
+        { light: '#ba68c8', main: '#8e24aa', dark: '#4a148c' }, // Fialová
+        { light: '#ef5350', main: '#c62828', dark: '#b71c1c' }, // Červená
+        { light: '#4fc3f7', main: '#039be5', dark: '#01579b' }  // Modrá (fantasy)
+    ],
+    flowers: {
+        red: { light: '#ff8a80', main: '#d32f2f', dark: '#b71c1c' },
+        blue: { light: '#82b1ff', main: '#2979ff', dark: '#0d47a1' },
+        purple: { light: '#ea80fc', main: '#aa00ff', dark: '#4a148c' },
+        white: { light: '#ffffff', main: '#e0e0e0', dark: '#9e9e9e' },
+        yellow: { light: '#ffffbf', main: '#fdd835', dark: '#f9a825' } 
+    },
+    stamens: { stem: '#fff59d', tip: '#f57f17' },
+    glow: '#ccff90' // Neon
+};
+
+/**
+ * === PRNG (Pseudo-Random Number Generator) ===
+ */
+class Random {
+    constructor(seedStr) {
+        // Hashování stringu na číslo
+        let h = 2166136261 >>> 0;
+        for (let i = 0; i < seedStr.length; i++) {
+            h = Math.imul(h ^ seedStr.charCodeAt(i), 16777619);
+        }
+        this.state = h;
+    }
+
+    // Vrací float 0.0 až 1.0
+    next() {
+        let t = this.state += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    }
+
+    // Vrací integer min (včetně) až max (včetně)
+    range(min, max) {
+        return Math.floor(this.next() * (max - min + 1)) + min;
+    }
+    
+    // Vrací float min až max
+    float(min, max) {
+        return this.next() * (max - min) + min;
+    }
+
+    // Pravda/Nepravda s pravděpodobností p
+    bool(p = 0.5) {
+        return this.next() < p;
+    }
+    
+    // Náhodná volba z pole
+    pick(array) {
+        return array[Math.floor(this.next() * array.length)];
+    }
+}
+
+/**
+ * === DRAWING ENGINE (Pixel Art) ===
+ */
+const CTX_WIDTH = 64;
+const CTX_HEIGHT = 96;
+
+function drawPixel(ctx, x, y, color) {
+    ctx.fillStyle = color;
+    // ZAOKROUHLENÍ: Pro pixel-perfect animaci musíme pozice zaokrouhlovat na celá čísla,
+    // jinak by canvas dělal sub-pixel rendering (rozmazání).
+    ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
+}
+
+// Bresenhamův algoritmus pro pixel-perfect čáru
+function drawLine(ctx, x0, y0, x1, y1, color) {
+    x0 = Math.round(x0); y0 = Math.round(y0);
+    x1 = Math.round(x1); y1 = Math.round(y1);
+    
+    const dx = Math.abs(x1 - x0);
+    const dy = Math.abs(y1 - y0);
+    const sx = (x0 < x1) ? 1 : -1;
+    const sy = (y0 < y1) ? 1 : -1;
+    let err = dx - dy;
+
+    ctx.fillStyle = color;
+
+    while (true) {
+        ctx.fillRect(x0, y0, 1, 1);
+        if (x0 === x1 && y0 === y1) break;
+        const e2 = 2 * err;
+        if (e2 > -dy) { err -= dy; x0 += sx; }
+        if (e2 < dx) { err += dx; y0 += sy; }
+    }
+}
+
+// Vyplněný kruh (pixelated)
+function drawCircle(ctx, xc, yc, r, color) {
+    xc = Math.round(xc); yc = Math.round(yc); r = Math.floor(r);
+    ctx.fillStyle = color;
+    for (let y = -r; y <= r; y++) {
+        for (let x = -r; x <= r; x++) {
+            if (x*x + y*y <= r*r) {
+                ctx.fillRect(xc + x, yc + y, 1, 1);
+            }
+        }
+    }
+}
+
+// Vyplněná elipsa s podporou zoubkování (Serrated)
+function drawEllipseRotated(ctx, xc, yc, rx, ry, angle, color, isSerrated = false, pattern = 'plain', patternColor = null) {
+    const maxR = Math.max(rx, ry);
+    const cosA = Math.cos(angle);
+    const sinA = Math.sin(angle);
+    
+    ctx.fillStyle = color;
+
+    // Iterujeme přes bounding box
+    for (let x = -maxR; x <= maxR; x++) {
+        for (let y = -maxR; y <= maxR; y++) {
+            // Rotace bodu zpět do lokálního systému elipsy
+            const dx = x * cosA + y * sinA;
+            const dy = y * cosA - x * sinA;
+            
+            // Základní rovnice elipsy
+            let dist = (dx*dx)/(rx*rx) + (dy*dy)/(ry*ry);
+
+            // Zoubkování (Serration) logic
+            if (isSerrated) {
+                // Úhel v rámci elipsy
+                const theta = Math.atan2(dy, dx);
+                // Modulace poloměru sinusovkou (dělá zuby)
+                const serration = 1.0 - 0.25 * Math.abs(Math.sin(theta * 5)); // 5 zubů na stranu
+                // Pokud je bod uvnitř "zubaté" hranice
+                if (dist <= serration) {
+                    drawPixelWithPattern(ctx, xc+x, yc+y, color, pattern, patternColor, x, y);
+                }
+            } else {
+                // Hladký okraj
+                if (dist <= 1) {
+                    drawPixelWithPattern(ctx, xc+x, yc+y, color, pattern, patternColor, x, y);
+                }
+            }
+        }
+    }
+}
+
+// Vyplněný kosočtverec (pro špičaté lístky)
+function drawRhombusRotated(ctx, xc, yc, rx, ry, angle, color, pattern = 'plain', patternColor = null) {
+    const maxR = Math.max(rx, ry);
+    const cosA = Math.cos(angle);
+    const sinA = Math.sin(angle);
+    
+    ctx.fillStyle = color;
+
+    for (let x = -maxR; x <= maxR; x++) {
+        for (let y = -maxR; y <= maxR; y++) {
+            const dx = x * cosA + y * sinA;
+            const dy = y * cosA - x * sinA;
+            
+            if (Math.abs(dx/rx) + Math.abs(dy/ry) <= 1) {
+                drawPixelWithPattern(ctx, xc+x, yc+y, color, pattern, patternColor, x, y);
+            }
+        }
+    }
+}
+
+// Pomocná funkce pro vzory na lístcích
+function drawPixelWithPattern(ctx, x, y, baseColor, pattern, patternColor, localX, localY) {
+    let finalColor = baseColor;
+
+    if (pattern === 'stripes') {
+        // Pruhy každé 2 pixely
+        if (Math.abs(localX) % 3 === 0) finalColor = patternColor;
+    } else if (pattern === 'dots') {
+        // Tečky (šachovnice nebo náhodněji)
+        if ((localX*localX + localY*localY) % 7 === 0) finalColor = patternColor;
+    }
+
+    ctx.fillStyle = finalColor;
+    ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
+}
+
+/**
+ * === LOGIKA GENERÁTORU ===
+ */
+
+function generatePlant(canvas, phenotype, seedStr, frame = 0) {
+    const startTime = performance.now();
+    const ctx = canvas.getContext('2d');
+    
+    // 1. Reset
+    ctx.clearRect(0, 0, CTX_WIDTH, CTX_HEIGHT);
+    
+    // Globální data rostliny pro layers
+    const plantData = {
+        stemNodes: [], // {x, y, angle}
+        topX: 0,
+        topY: 0
+    };
+
+    // VÝPOČET VĚTRU (PIXEL-ART ANIMACE)
+    // Místo float sinusovky používáme celočíselný lookup table (LUT).
+    // Sekvence 4 snímků: Střed(0) -> Vpravo(1) -> Střed(0) -> Vlevo(-1).
+    // To vytváří jemné, "zubaté" pohupování bez interpolace.
+    const windPattern = [0, 1, 0, -1];
+    const windForceInt = windPattern[frame % 4]; 
+
+    // --- VRSTVA 1: KVĚTINÁČ (Statický) ---
+    drawPot(ctx, new Random(seedStr + "_pot"));
+
+    // --- VRSTVA 2: STONEK ---
+    drawStem(ctx, new Random(seedStr + "_stem"), phenotype, plantData, windForceInt);
+
+    // --- VRSTVA 2.5: ÚPONKY ---
+    if (phenotype.stem === 'vine') {
+         drawTendrils(ctx, new Random(seedStr + "_tendrils"), phenotype, plantData);
+    }
+
+    // --- VRSTVA 3: LISTY ---
+    drawLeaves(ctx, new Random(seedStr + "_leaves"), phenotype, plantData, windForceInt);
+
+    // --- VRSTVA 4: TRNY ---
+    if (phenotype.thorns) {
+        drawThorns(ctx, new Random(seedStr + "_thorns"), plantData);
+    }
+
+    // --- VRSTVA 5: PLODY ---
+    if (phenotype.fruit) {
+        drawFruits(ctx, new Random(seedStr + "_fruit"), phenotype, plantData);
+    }
+
+    // --- VRSTVA 6: KVĚT ---
+    drawFlower(ctx, new Random(seedStr + "_flower"), phenotype, plantData, windForceInt);
+
+    // --- VRSTVA 7: GLOW ---
+    if (phenotype.glow) {
+        drawGlow(ctx, new Random(seedStr + "_glow"), plantData);
+    }
+
+    const endTime = performance.now();
+    return (endTime - startTime).toFixed(2);
+}
+
+// --- Implementace vrstev ---
+
+function drawPot(ctx, rng) {
+    const cx = CTX_WIDTH / 2;
+    const yBottom = CTX_HEIGHT - 2;
+    const yTop = CTX_HEIGHT - 10;
+    const widthTop = 14;
+    const widthBottom = 10;
+
+    ctx.fillStyle = PALETTES.pot.main;
+    const halfTop = widthTop / 2;
+    const halfBot = widthBottom / 2;
+    
+    const steps = yBottom - yTop;
+    for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const currentWidth = halfTop - (t * (halfTop - halfBot));
+        const y = yTop + i;
+        ctx.fillRect(Math.round(cx - currentWidth), y, Math.round(currentWidth * 2), 1);
+    }
+
+    drawLine(ctx, cx + halfBot - 1, yBottom, cx + halfTop - 1, yTop, PALETTES.pot.dark);
+    
+    ctx.fillStyle = PALETTES.pot.dark;
+    ctx.fillRect(Math.round(cx - halfTop - 1), yTop - 1, widthTop + 2, 2);
+    
+    drawEllipseRotated(ctx, cx, yTop, halfTop - 1, 2, 0, PALETTES.pot.soil);
+}
+
+function drawStem(ctx, rng, phenotype, data, windForceInt) {
+    const startX = CTX_WIDTH / 2;
+    const startY = CTX_HEIGHT - 14; 
+    const endY = 20; 
+    
+    let currentX = startX;
+    const isVine = phenotype.stem === 'vine';
+    const isThick = phenotype.stemThickness === 'thick';
+    const isHairy = phenotype.stemTexture === 'hairy';
+
+    const palette = PALETTES.foliage[phenotype.foliageColor] || PALETTES.foliage.green;
+    
+    const curveFreq = rng.float(0.1, 0.2); 
+    const curveAmp = isVine ? rng.range(6, 12) : rng.range(1, 3); 
+    const phase = rng.float(0, Math.PI * 2);
+    
+    const nodeCount = rng.range(3, 5);
+    const nodeInterval = (startY - endY) / nodeCount;
+    let nextNodeY = startY - nodeInterval;
+
+    // Wind efekt: max výchylka nahoře (1px pro normal, 2px pro vine)
+    // Tímto zajistíme, že pohyb je opravdu jen o 1-2 pixely, velmi subtilní.
+    const maxWindSway = isVine ? 2 : 1; 
+
+    for (let y = startY; y >= endY; y--) {
+        const progress = 1 - (y - endY) / (startY - endY); // 0 dole, 1 nahoře
+        const wave = Math.sin((y * curveFreq) + phase);
+        const currentAmp = isVine ? (curveAmp * Math.sqrt(progress)) : (curveAmp * progress);
+        
+        // Aplikace větru: Lineární nárůst s výškou a zaokrouhlení pro pixel skok
+        // windForceInt je -1, 0, nebo 1.
+        const windOffset = Math.round(windForceInt * maxWindSway * progress); 
+
+        const x = startX + (wave * currentAmp) + windOffset;
+        
+        // Kreslení stonku podle tloušťky
+        if (isThick) {
+            drawPixel(ctx, x - 2, y, palette.dark);
+            drawPixel(ctx, x - 1, y, palette.dark);
+            drawPixel(ctx, x, y, palette.main);
+            drawPixel(ctx, x + 1, y, palette.main);
+            drawPixel(ctx, x + 2, y, palette.light);
+        } else {
+            drawPixel(ctx, x - 1, y, palette.dark);
+            drawPixel(ctx, x, y, palette.main);
+            drawPixel(ctx, x + 1, y, palette.light);
+        }
+
+        // Textura: Chlupatý stonek
+        if (isHairy) {
+            if (rng.bool(0.2)) drawPixel(ctx, x - (isThick ? 3 : 2), y, palette.light);
+            if (rng.bool(0.2)) drawPixel(ctx, x + (isThick ? 3 : 2), y, palette.dark);
+        }
+
+        if (y <= nextNodeY && data.stemNodes.length < nodeCount) {
+            // U uzlů také aplikujeme windOffset, aby listy neplavaly mimo stonek
+            const prevX = startX + (Math.sin(((y+1) * curveFreq) + phase) * currentAmp) + windOffset;
+            const dx = x - prevX;
+            const angle = Math.atan2(dx, -1); 
+            data.stemNodes.push({ x: x, y: y, angle: angle });
+            nextNodeY -= nodeInterval;
+        }
+        currentX = x;
+    }
+    data.topX = currentX;
+    data.topY = endY;
+}
+
+function drawLeaves(ctx, rng, phenotype, data, windForceInt) {
+    const isWide = phenotype.leaf === 'wide';
+    const isSerrated = phenotype.leafEdge === 'serrated';
+    const palette = PALETTES.foliage[phenotype.foliageColor] || PALETTES.foliage.green;
+
+    let minLen, maxLen;
+    if (phenotype.leafSize === 'small') { minLen = 4; maxLen = 6; } 
+    else if (phenotype.leafSize === 'large') { minLen = 9; maxLen = 14; } 
+    else { minLen = 6; maxLen = 10; }
+
+    data.stemNodes.forEach((node, index) => {
+        const side = (index % 2 === 0) ? -1 : 1;
+        const stemNormal = node.angle + (side * (Math.PI / 2.5));
+        
+        // Listy se také mírně natáčejí ve větru, ale jen o malý kousek
+        const windRotation = windForceInt * 0.05; 
+        const leafAngle = stemNormal + rng.float(-0.2, 0.2) + windRotation;
+
+        const len = rng.range(minLen, maxLen);
+        const width = isWide ? rng.range(4, 5) : rng.range(2, 3);
+
+        const cx = node.x + (Math.cos(leafAngle) * (len/2));
+        const cy = node.y + (Math.sin(leafAngle) * (len/2));
+
+        drawEllipseRotated(ctx, cx, cy, len/2, width/2, leafAngle, palette.main, isSerrated);
+        
+        const tx = node.x + (Math.cos(leafAngle) * len);
+        const ty = node.y + (Math.sin(leafAngle) * len);
+        drawLine(ctx, node.x, node.y, tx, ty, palette.dark);
+    });
+}
+
+function drawTendrils(ctx, rng, phenotype, data) {
+    const palette = PALETTES.foliage[phenotype.foliageColor] || PALETTES.foliage.green;
+    data.stemNodes.forEach((node, index) => {
+        if (rng.bool(0.7)) { 
+             const side = (index % 2 === 0) ? 1 : -1; 
+             let tx = node.x;
+             let ty = node.y;
+             const length = rng.range(5, 8);
+             ctx.fillStyle = palette.light; 
+             let angle = (side === 1) ? 0 : Math.PI;
+             for(let i=0; i<length; i++) {
+                 tx += Math.cos(angle);
+                 ty += Math.sin(angle); 
+                 angle += (side * 0.8); 
+                 ctx.fillRect(Math.round(tx), Math.round(ty), 1, 1);
+             }
+        }
+    });
+}
+
+function drawThorns(ctx, rng, data) {
+    data.stemNodes.forEach((node, index) => {
+        const side = (index % 2 === 0) ? 1 : -1; 
+        const angle = node.angle + (side * Math.PI/2);
+        const len = rng.range(2, 4);
+        const tipX = node.x + Math.cos(angle) * len;
+        const tipY = node.y + Math.sin(angle) * len;
+        drawLine(ctx, node.x, node.y, tipX, tipY, PALETTES.thorns.main);
+    });
+}
+
+function drawFruits(ctx, rng, phenotype, data) {
+    const fruitPalette = rng.pick(PALETTES.fruits);
+    const stemPalette = PALETTES.foliage[phenotype.foliageColor] || PALETTES.foliage.green;
+    const isOval = phenotype.fruitShape === 'oval';
+
+    data.stemNodes.forEach(node => {
+        if (rng.bool(0.6)) { 
+            const r = rng.range(2, 3);
+            const offsetX = rng.pick([-4, 4]); 
+            const offsetY = rng.range(0, 4);   
+
+            drawLine(ctx, node.x, node.y, node.x + offsetX/2, node.y + offsetY, stemPalette.dark);
+            
+            const fx = node.x + offsetX;
+            const fy = node.y + offsetY + 1;
+            
+            if (isOval) {
+                drawEllipseRotated(ctx, fx, fy, r, r * 1.5, 0, fruitPalette.main);
+            } else {
+                drawCircle(ctx, fx, fy, r, fruitPalette.main);
+            }
+            
+            drawPixel(ctx, fx+1, fy+1, fruitPalette.dark);
+            drawPixel(ctx, fx-1, fy-1, fruitPalette.light);
+        }
+    });
+}
+
+function drawFlower(ctx, rng, phenotype, data, windForceInt) {
+    const cx = data.topX;
+    const cy = data.topY;
+    const isPointy = phenotype.flowerShape === 'pointy';
+    
+    let scale = 1.0;
+    if (phenotype.flowerSize === 'small') scale = 0.7;
+    if (phenotype.flowerSize === 'large') scale = 1.3;
+
+    const petalCount = rng.range(5, 8);
+    const petalLen = rng.range(4, 7) * scale;
+    const petalWidth = rng.range(2, 4) * scale;
+    // Jemná rotace
+    const rotationOffset = rng.float(0, Math.PI) + (windForceInt * 0.05); 
+
+    for (let i = 0; i < petalCount; i++) {
+        const angle = rotationOffset + (i / petalCount) * Math.PI * 2;
+        const px = cx + Math.cos(angle) * (petalLen/1.5);
+        const py = cy + Math.sin(angle) * (petalLen/1.5);
+
+        const colorKey = (i % 2 === 0) ? phenotype.flowerColor : phenotype.flowerColorSecondary;
+        const pColor = PALETTES.flowers[colorKey];
+        
+        const pattern = phenotype.flowerPattern; 
+        const patternColor = pColor.light; 
+
+        if (isPointy) {
+            drawRhombusRotated(ctx, px, py, petalLen, petalWidth, angle, pColor.main, pattern, patternColor);
+        } else {
+            drawEllipseRotated(ctx, px, py, petalLen, petalWidth, angle, pColor.main, false, pattern, patternColor);
+        }
+        
+        const basePx = cx + Math.cos(angle) * 1;
+        const basePy = cy + Math.sin(angle) * 1;
+        drawPixel(ctx, basePx, basePy, pColor.dark);
+    }
+
+    if (phenotype.sex !== 'male') {
+        const centerColor = (phenotype.flowerColor === 'yellow') ? '#fb8c00' : '#fff59d';
+        const centerDark = (phenotype.flowerColor === 'yellow') ? '#e65100' : '#fbc02d';
+        drawCircle(ctx, cx, cy, 2, centerColor); 
+        drawPixel(ctx, cx, cy, centerDark); 
+    } else {
+        drawCircle(ctx, cx, cy, 1, '#8d6e63');
+    }
+
+    if (phenotype.sex !== 'female') {
+        const stamenCount = rng.range(3, 6);
+        const stamenStemColor = (phenotype.flowerColor === 'yellow') ? '#e65100' : PALETTES.stamens.stem;
+        for (let i = 0; i < stamenCount; i++) {
+            const angle = (i / stamenCount) * Math.PI * 2 + rotationOffset + (Math.PI/petalCount); 
+            const len = rng.range(3, 6);
+            const sx = cx + Math.cos(angle) * len;
+            const sy = cy + Math.sin(angle) * len;
+            drawPixel(ctx, cx + Math.cos(angle)*(len/2), cy + Math.sin(angle)*(len/2), stamenStemColor);
+            drawPixel(ctx, sx, sy, PALETTES.stamens.tip);
+        }
+    }
+}
+
+function drawGlow(ctx, rng, data) {
+    const flowerParticles = rng.range(8, 12); 
+    for(let i=0; i<flowerParticles; i++) {
+        const angle = rng.float(0, Math.PI * 2);
+        const dist = rng.range(6, 14); 
+        const x = data.topX + Math.cos(angle) * dist;
+        const y = data.topY + Math.sin(angle) * dist;
+        
+        if(x > 0 && x < CTX_WIDTH && y > 0 && y < CTX_HEIGHT) {
+            ctx.fillStyle = PALETTES.glow;
+            ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
+        }
+    }
+    data.stemNodes.forEach(node => {
+        if(rng.bool(0.4)) { 
+             const ox = rng.pick([-1, 1]) * rng.range(3, 6);
+             const oy = rng.range(-3, 3);
+             const gx = Math.round(node.x + ox);
+             const gy = Math.round(node.y + oy);
+             if(gx > 0 && gx < CTX_WIDTH) {
+                 ctx.fillStyle = PALETTES.glow;
+                 ctx.fillRect(gx, gy, 1, 1);
+             }
+        }
+    });
+}
+
+/**
+ * === UI HANDLING ===
+ */
+
+function getConfiguration() {
+    return {
+        phenotype: {
+            stem: document.getElementById('gene-stem').value,
+            stemThickness: document.getElementById('gene-stem-thickness').value, 
+            stemTexture: document.getElementById('gene-stem-texture').value,     
+            leaf: document.getElementById('gene-leaf').value,
+            leafSize: document.getElementById('gene-leaf-size').value,
+            leafEdge: document.getElementById('gene-leaf-edge').value,           
+            foliageColor: document.getElementById('gene-foliage-color').value,
+            flowerColor: document.getElementById('gene-color').value,
+            flowerColorSecondary: document.getElementById('gene-color-2').value,
+            flowerShape: document.getElementById('gene-flower-shape').value,
+            flowerSize: document.getElementById('gene-flower-size').value,       
+            flowerPattern: document.getElementById('gene-flower-pattern').value, 
+            sex: document.getElementById('gene-sex').value,
+            fruitShape: document.getElementById('gene-fruit-shape').value,       
+            thorns: document.getElementById('gene-thorns').checked,
+            fruit: document.getElementById('gene-fruit').checked,
+            glow: document.getElementById('gene-glow').checked
+        },
+        seed: document.getElementById('input-seed').value,
+        animate: document.getElementById('animate-toggle').checked
+    };
+}
+
+// Animation loop handling
+let animInterval = null;
+let currentFrame = 0;
+
+function startAnimation() {
+    if (animInterval) clearInterval(animInterval);
+    // ZMĚNA: Zpomaleno z 200ms na 400ms pro klidnější "idle" tempo
+    animInterval = setInterval(() => {
+        currentFrame = (currentFrame + 1) % 4; // 0, 1, 0, -1
+        update(true); // true = called from animation loop
+    }, 400);
+}
+
+function stopAnimation() {
+    if (animInterval) {
+        clearInterval(animInterval);
+        animInterval = null;
+    }
+    currentFrame = 0;
+    update(false);
+}
+
+function update(isLoop = false) {
+    const config = getConfiguration();
+    
+    // Logic for animation toggle
+    if (config.animate && !animInterval && !isLoop) {
+        startAnimation();
+        return; // startAnimation will call update
+    } else if (!config.animate && animInterval) {
+        stopAnimation();
+        return; // stopAnimation will call update
+    }
+
+    const canvas = document.getElementById('plantCanvas');
+    const time = generatePlant(canvas, config.phenotype, config.seed, currentFrame);
+    
+    document.getElementById('seed-display').innerText = `Seed: ${config.seed}`;
+    document.getElementById('time-display').innerText = `Render: ${time}ms | Frame: ${currentFrame}`;
+}
+
+document.getElementById('btn-generate').addEventListener('click', () => update(false));
+document.getElementById('btn-random-seed').addEventListener('click', () => {
+    document.getElementById('input-seed').value = Math.random().toString(36).substring(7);
+    update(false);
+});
+
+// Vyhneme se dvojímu renderu: change pro select/checkbox, input jen pro text.
+document.querySelectorAll('select, input[type="checkbox"]').forEach(input => {
+    input.addEventListener('change', () => update(false));
+});
+document.querySelectorAll('input[type="text"]').forEach(input => {
+    input.addEventListener('input', () => update(false));
+});
+
+async function copyTextToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+    }
+
+    const helper = document.createElement('textarea');
+    helper.value = text;
+    helper.setAttribute('readonly', '');
+    helper.style.position = 'absolute';
+    helper.style.left = '-9999px';
+    document.body.appendChild(helper);
+    helper.select();
+
+    const copied = document.execCommand('copy');
+    document.body.removeChild(helper);
+
+    if (!copied) {
+        throw new Error('Clipboard copy failed');
+    }
+}
+
+document.getElementById('btn-export').addEventListener('click', async () => {
+    try {
+        await copyTextToClipboard(JSON.stringify(getConfiguration()));
+        alert("Seed karta (JSON) zkopírována do schránky!");
+    } catch (error) {
+        console.error('Nepodařilo se zkopírovat seed kartu:', error);
+        alert("Kopírování selhalo. Zkus stránku otevřít přes HTTPS nebo použij ruční kopii.");
+    }
+});
+
+update();
+
+</script>
+</body>
+</html>
