@@ -528,8 +528,8 @@ function generatePlant(canvas, phenotype, seedStr, frame = 0) {
     const windPattern = [0, 1, 0, -1];
     const windForceInt = windPattern[frame % 4];
 
-    drawPot(ctx, new Random(seedStr + "_pot"));
     drawStem(ctx, new Random(seedStr + "_stem"), phenotype, plantData, windForceInt);
+    drawPot(ctx, new Random(seedStr + "_pot"));
     if (phenotype.stem === 'vine')
         drawTendrils(ctx, new Random(seedStr + "_tendrils"), phenotype, plantData);
     drawLeaves(ctx, new Random(seedStr + "_leaves"), phenotype, plantData, windForceInt);
