@@ -1,0 +1,22 @@
+.container {
+  display: flex;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  gap: 20px;
+}
+
+.preview-area {
+  flex: 2;
+  background: #111;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background-image: radial-gradient(#333 1px, transparent 1px);
+  background-size: 20px 20px;
+}

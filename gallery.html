@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Botanic Lab 3 - Modulární galerie</title>
+  <style>
+    :root {
+      --bg: #0b1411;
+      --panel: #15221d;
+      --line: #2a443a;
+      --text: #e7f2eb;
+      --muted: #9fb6ab;
+      --accent: #6fd79f;
+      --accent-2: #2c4a3d;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 16% 15%, #173025 0%, transparent 36%),
+        radial-gradient(circle at 84% 12%, #22382c 0%, transparent 32%),
+        radial-gradient(circle at 48% 90%, #1a2d24 0%, transparent 38%),
+        var(--bg);
+      padding: 16px;
+    }
+
+    .header {
+      width: min(1440px, 100%);
+      margin: 0 auto 12px auto;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: color-mix(in oklab, var(--panel) 92%, black 8%);
+      padding: 14px 16px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 1.2rem;
+      letter-spacing: 0.02em;
+    }
+
+    .header p {
+      margin: 8px 0 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .legend {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      border: 1px solid #3a5b4d;
+      border-radius: 999px;
+      padding: 5px 9px;
+      background: #1a2f25;
+      font-size: 0.74rem;
+      color: #d1ebde;
+    }
+
+    .sections {
+      width: min(1440px, 100%);
+      margin: 0 auto;
+      display: grid;
+      gap: 12px;
+    }
+
+    .section {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: color-mix(in oklab, var(--panel) 90%, black 10%);
+      padding: 12px;
+    }
+
+    .section h2 {
+      margin: 0 0 9px 0;
+      font-size: 1rem;
+      color: #c6efda;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 10px;
+    }
+
+    .card {
+      border: 1px solid #335044;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #122019;
+      display: grid;
+      grid-template-rows: auto auto;
+      min-height: 400px;
+    }
+
+    .preview {
+      border-bottom: 1px solid #2f4a3f;
+      background: #17251f;
+      min-height: 275px;
+      aspect-ratio: 4 / 5;
+    }
+
+    .preview iframe {
+      border: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: #111c16;
+    }
+
+    .meta {
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .meta h3 {
+      margin: 0;
+      font-size: 0.93rem;
+      line-height: 1.2;
+      color: #ecfbf2;
+    }
+
+    .meta p {
+      margin: 0;
+      color: #adc7bb;
+      font-size: 0.81rem;
+      line-height: 1.35;
+      min-height: 2.5em;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag {
+      border: 1px solid #3c5f4f;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 0.69rem;
+      color: #d3ecdf;
+      background: #1b3026;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      flex: 1;
+      border: 1px solid #3e5f53;
+      border-radius: 8px;
+      color: #e7f2eb;
+      background: var(--accent-2);
+      padding: 7px 9px;
+      font-size: 0.76rem;
+      text-decoration: none;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .btn.primary {
+      background: linear-gradient(180deg, #75d9a4, #49a677);
+      color: #062011;
+      border-color: #75d9a4;
+      font-weight: 700;
+    }
+
+    @media (max-width: 760px) {
+      body { padding: 10px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1>Botanic Lab 3 - Modulární galerie</h1>
+    <p>
+      Galerie je teď čistě po modulech: jen květy, druhy květů, jen listy, jen stonky, jen plody.
+      Každá karta otevírá stejné nastavení v <code>index3.html</code>.
+    </p>
+    <div class="legend">
+      <span class="chip">A: jen květy</span>
+      <span class="chip">B: druhy květů</span>
+      <span class="chip">C: jen listy</span>
+      <span class="chip">D: jen stonky</span>
+      <span class="chip">E: jen plody</span>
+    </div>
+  </header>
+
+  <main id="sections" class="sections"></main>
+
+  <script>
+    const BASE = {
+      species: "hybrid",
+      growthStyle: "branchy",
+      complexity: 55,
+      branchDensity: 45,
+      stemThickness: 52,
+      curvature: 50,
+      wind: 46,
+      leafShape: "oval",
+      leafSize: 52,
+      leafColor: "green",
+      variegation: 25,
+      serrated: true,
+      dew: false,
+      flowerStyle: "daisy",
+      flowerSize: 56,
+      flowerA: "sun",
+      flowerB: "rose",
+      fruits: false,
+      fruitStyle: "berry",
+      glow: false,
+      thorns: false,
+      animate: true,
+      speed: 45,
+      showPot: true,
+      showStems: true,
+      showLeaves: true,
+      showFlowers: true,
+      showFruits: true,
+      showThorns: true,
+      showDew: true
+    };
+
+    const sections = [
+      { id: "flowers-only", title: "A) Jen květy" },
+      { id: "flower-types", title: "B) Druhy květů" },
+      { id: "leaves-only", title: "C) Jen listy" },
+      { id: "stems-only", title: "D) Jen stonky" },
+      { id: "fruits-only", title: "E) Jen plody" }
+    ];
+
+    const variants = [
+      {
+        section: "flowers-only",
+        name: "Warm Daisy Cluster",
+        note: "Izolované květy, teplá paleta, bez listů/plodů.",
+        tags: ["daisy", "warm", "only flowers"],
+        params: {
+          seed: "mod-f-01",
+          flowerStyle: "daisy",
+          flowerA: "sun",
+          flowerB: "peach",
+          flowerSize: 60,
+          complexity: 57,
+          showLeaves: false,
+          showFruits: false,
+          showThorns: false,
+          showDew: false
+        }
+      },
+      {
+        section: "flowers-only",
+        name: "Crimson Rosette",
+        note: "Rosetový styl, výrazný střed a tmavší odstín.",
+        tags: ["rosette", "crimson", "only flowers"],
+        params: {
+          seed: "mod-f-02",
+          flowerStyle: "rosette",
+          flowerA: "crimson",
+          flowerB: "rose",
+          flowerSize: 64,
+          complexity: 54,
+          showLeaves: false,
+          showFruits: false,
+          showThorns: false,
+          showDew: false
+        }
+      },
+      {
+        section: "flowers-only",
+        name: "Soft Violet Bell",
+        note: "Zvonkový květ s jemnou fialovo-bílou kombinací.",
+        tags: ["bell", "violet", "only flowers"],
+        params: {
+          seed: "mod-f-03",
+          flowerStyle: "bell",
+          flowerA: "violet",
+          flowerB: "white",
+          flowerSize: 54,
+          glow: true,
+          showLeaves: false,
+          showFruits: false,
+          showThorns: false,
+          showDew: false
+        }
+      },
+      {
+        section: "flower-types",
+        name: "Type: Rosette",
+        note: "Porovnání typu květu rosette.",
+        tags: ["type", "rosette"],
+        params: {
+          seed: "type-rose-01",
+          flowerStyle: "rosette",
+          flowerA: "rose",
+          flowerB: "peach",
+          showLeaves: false,
+          showFruits: false,
+          showThorns: false,
+          showDew: false
+        }
+      },
+      {
+        section: "flower-types",
+        name: "Type: Star",
+        note: "Porovnání typu květu star.",
+        tags: ["type", "star"],
+        params: {
+          seed: "type-star-01",
+          flowerStyle: "star",
+          flowerA: "violet",
+          flowerB: "white",
+          showLeaves: false,
+          showFruits: false,
+          showThorns: false,
+          showDew: false
+        }
+      },
+      {
+        section: "flower-types",
+        name: "Type: Daisy",
+        note: "Porovnání typu květu daisy.",
+        tags: ["type", "daisy"],
+        params: {
+          seed: "type-daisy-01",
+          flowerStyle: "daisy",
+          flowerA: "sun",
+          flowerB: "peach",
+          showLeaves: false,
+          showFruits: false,
+          showThorns: false,
+          showDew: false
+        }
+      },
+      {
+        section: "flower-types",
+        name: "Type: Bell",
+        note: "Porovnání typu květu bell.",
+        tags: ["type", "bell"],
+        params: {
+          seed: "type-bell-01",
+          flowerStyle: "bell",
+          flowerA: "white",
+          flowerB: "violet",
+          showLeaves: false,
+          showFruits: false,
+          showThorns: false,
+          showDew: false
+        }
+      },
+      {
+        section: "leaves-only",
+        name: "Heart Mint Leaves",
+        note: "Jen listy se srdčitým tvarem a mint paletou.",
+        tags: ["heart", "mint", "only leaves"],
+        params: {
+          seed: "mod-l-01",
+          leafShape: "heart",
+          leafColor: "mint",
+          leafSize: 68,
+          variegation: 42,
+          showFlowers: false,
+          showFruits: false,
+          showThorns: false,
+          showDew: false
+        }
+      },
+      {
+        section: "leaves-only",
+        name: "Lance Dark Leaves",
+        note: "Uzké tmavé listy, čistá silueta.",
+        tags: ["lance", "dark", "only leaves"],
+        params: {
+          seed: "mod-l-02",
+          leafShape: "lance",
+          leafColor: "dark",
+          leafSize: 45,
+          showFlowers: false,
+          showFruits: false,
+          showThorns: false,
+          showDew: false
+        }
+      },
+      {
+        section: "leaves-only",
+        name: "Autumn Oval Leaves",
+        note: "Podzimní listová hmota bez květů.",
+        tags: ["oval", "autumn", "only leaves"],
+        params: {
+          seed: "mod-l-03",
+          leafShape: "oval",
+          leafColor: "autumn",
+          leafSize: 66,
+          complexity: 62,
+          branchDensity: 58,
+          showFlowers: false,
+          showFruits: false,
+          showThorns: false,
+          showDew: false
+        }
+      },
+      {
+        section: "stems-only",
+        name: "Stem Upright",
+        note: "Jen stonky, vertikální růst, menší zakřivení.",
+        tags: ["upright", "only stems"],
+        params: {
+          seed: "mod-s-01",
+          growthStyle: "upright",
+          stemThickness: 34,
+          curvature: 32,
+          wind: 30,
+          branchDensity: 30,
+          showLeaves: false,
+          showFlowers: false,
+          showFruits: false,
+          showThorns: false,
+          showDew: false
+        }
+      },
+      {
+        section: "stems-only",
+        name: "Stem Branchy",
+        note: "Jen stonky, klasická větevnatá struktura.",
+        tags: ["branchy", "only stems"],
+        params: {
+          seed: "mod-s-02",
+          growthStyle: "branchy",
+          stemThickness: 52,
+          curvature: 50,
+          wind: 42,
+          branchDensity: 50,
+          showLeaves: false,
+          showFlowers: false,
+          showFruits: false,
+          showThorns: false,
+          showDew: false
+        }
+      },
+      {
+        section: "stems-only",
+        name: "Stem Bushy",
+        note: "Jen stonky, hustší kerový charakter.",
+        tags: ["bushy", "only stems"],
+        params: {
+          seed: "mod-s-03",
+          growthStyle: "bushy",
+          stemThickness: 60,
+          curvature: 70,
+          wind: 38,
+          branchDensity: 66,
+          complexity: 66,
+          showLeaves: false,
+          showFlowers: false,
+          showFruits: false,
+          showThorns: false,
+          showDew: false
+        }
+      },
+      {
+        section: "stems-only",
+        name: "Stem Vine",
+        note: "Jen stonky, popínavý pohyb a nepravidelnost.",
+        tags: ["vine", "only stems"],
+        params: {
+          seed: "mod-s-04",
+          growthStyle: "vine",
+          stemThickness: 45,
+          curvature: 76,
+          wind: 64,
+          branchDensity: 62,
+          showLeaves: false,
+          showFlowers: false,
+          showFruits: false,
+          showThorns: false,
+          showDew: false
+        }
+      },
+      {
+        section: "fruits-only",
+        name: "Fruit Berry",
+        note: "Jen plody (berry), bez květů a listů.",
+        tags: ["berry", "only fruits"],
+        params: {
+          seed: "mod-r-01",
+          fruits: true,
+          fruitStyle: "berry",
+          showLeaves: false,
+          showFlowers: false,
+          showThorns: false,
+          showDew: false
+        }
+      },
+      {
+        section: "fruits-only",
+        name: "Fruit Pear",
+        note: "Jen plody (pear), světlejší charakter.",
+        tags: ["pear", "only fruits"],
+        params: {
+          seed: "mod-r-02",
+          fruits: true,
+          fruitStyle: "pear",
+          showLeaves: false,
+          showFlowers: false,
+          showThorns: false,
+          showDew: false
+        }
+      },
+      {
+        section: "fruits-only",
+        name: "Fruit Pod",
+        note: "Jen plody (pod), strukturovanější vzhled.",
+        tags: ["pod", "only fruits"],
+        params: {
+          seed: "mod-r-03",
+          fruits: true,
+          fruitStyle: "pod",
+          showLeaves: false,
+          showFlowers: false,
+          showThorns: false,
+          showDew: false
+        }
+      }
+    ];
+
+    function toQuery(params, preview) {
+      const merged = { ...BASE, ...params };
+      const query = new URLSearchParams();
+      if (preview) query.set("preview", "1");
+      for (const [key, value] of Object.entries(merged)) {
+        if (typeof value === "boolean") query.set(key, value ? "1" : "0");
+        else query.set(key, String(value));
+      }
+      return query.toString();
+    }
+
+    function cardMarkup(variant) {
+      const previewHref = `index3.html?${toQuery(variant.params, true)}`;
+      const editHref = `index3.html?${toQuery(variant.params, false)}`;
+      const tagsHtml = variant.tags.map((tag) => `<span class="tag">${tag}</span>`).join("");
+      return `
+        <article class="card">
+          <div class="preview">
+            <iframe loading="lazy" src="${previewHref}" title="${variant.name}"></iframe>
+          </div>
+          <div class="meta">
+            <h3>${variant.name}</h3>
+            <p>${variant.note}</p>
+            <div class="tags">${tagsHtml}</div>
+            <div class="actions">
+              <a class="btn primary" href="${editHref}" target="_blank" rel="noopener">Otevřít v editoru</a>
+              <button class="btn" data-copy="${editHref}">Kopírovat URL</button>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderGallery() {
+      const root = document.getElementById("sections");
+      root.innerHTML = sections.map((section) => {
+        const cards = variants
+          .filter((variant) => variant.section === section.id)
+          .map((variant) => cardMarkup(variant))
+          .join("");
+        return `
+          <section class="section">
+            <h2>${section.title}</h2>
+            <div class="grid">${cards}</div>
+          </section>
+        `;
+      }).join("");
+    }
+
+    async function copyLink(url, trigger) {
+      try {
+        await navigator.clipboard.writeText(url);
+        const original = trigger.textContent;
+        trigger.textContent = "Zkopírováno";
+        setTimeout(() => { trigger.textContent = original; }, 1000);
+      } catch (err) {
+        console.error(err);
+        window.prompt("Kopírování selhalo, zkopíruj URL ručně:", url);
+      }
+    }
+
+    document.addEventListener("click", (event) => {
+      const target = event.target.closest("[data-copy]");
+      if (!target) return;
+      copyLink(target.getAttribute("data-copy"), target);
+    });
+
+    renderGallery();
+  </script>
+</body>
+</html>

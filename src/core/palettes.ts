@@ -1,0 +1,92 @@
+import type { Palettes } from './types';
+
+export const PALETTES: Palettes = {
+  foliage: {
+    green: {
+      highlight: '#a5d64d',
+      light: '#7cb342',
+      main: '#558b2f',
+      dark: '#33691e',
+      shadow: '#1b5e20',
+    },
+    teal: {
+      highlight: '#b2dfdb',
+      light: '#80cbc4',
+      main: '#00897b',
+      dark: '#004d40',
+      shadow: '#00251a',
+    },
+    autumn: {
+      highlight: '#ffe0b2',
+      light: '#ffcc80',
+      main: '#ef6c00',
+      dark: '#e65100',
+      shadow: '#bf360c',
+    },
+    dark: {
+      highlight: '#cfd8dc',
+      light: '#90a4ae',
+      main: '#546e7a',
+      dark: '#37474f',
+      shadow: '#263238',
+    },
+  },
+  pot: {
+    highlight: '#d7ccc8',
+    light: '#a1887f',
+    main: '#8d6e63',
+    dark: '#6d4c41',
+    shadow: '#4e342e',
+    rim: '#bcaaa4',
+    soil: '#3e2723',
+    soilLight: '#4e342e',
+    soilDark: '#2c1a12',
+  },
+  thorns: { highlight: '#6d4c41', main: '#4e342e', dark: '#3e2723' },
+  fruits: [
+    { highlight: '#ffab91', light: '#ff8a65', main: '#e64a19', dark: '#bf360c' },
+    { highlight: '#ce93d8', light: '#ba68c8', main: '#8e24aa', dark: '#4a148c' },
+    { highlight: '#ef9a9a', light: '#ef5350', main: '#c62828', dark: '#b71c1c' },
+    { highlight: '#81d4fa', light: '#4fc3f7', main: '#039be5', dark: '#01579b' },
+  ],
+  flowers: {
+    red: {
+      highlight: '#ffcdd2',
+      light: '#ef9a9a',
+      main: '#e53935',
+      dark: '#c62828',
+      shadow: '#b71c1c',
+    },
+    blue: {
+      highlight: '#bbdefb',
+      light: '#90caf9',
+      main: '#1e88e5',
+      dark: '#1565c0',
+      shadow: '#0d47a1',
+    },
+    purple: {
+      highlight: '#e1bee7',
+      light: '#ce93d8',
+      main: '#8e24aa',
+      dark: '#6a1b9a',
+      shadow: '#4a148c',
+    },
+    white: {
+      highlight: '#ffffff',
+      light: '#f5f5f5',
+      main: '#e0e0e0',
+      dark: '#bdbdbd',
+      shadow: '#9e9e9e',
+    },
+    yellow: {
+      highlight: '#fff9c4',
+      light: '#fff176',
+      main: '#fdd835',
+      dark: '#f9a825',
+      shadow: '#f57f17',
+    },
+  },
+  stamens: { stem: '#fff9c4', tip: '#f57f17', tipLight: '#ff9800' },
+  sepals: { highlight: '#81c784', light: '#66bb6a', main: '#388e3c', dark: '#2e7d32' },
+  glow: { bright: '#ccff90', mid: '#b2ff59', dim: '#76ff03' },
+};

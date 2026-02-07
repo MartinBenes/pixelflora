@@ -1,0 +1,62 @@
+name: Bug report
+description: Report an unexpected behavior or regression
+title: '[Bug]: '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please provide enough details for maintainers to reproduce it quickly.
+
+  - type: input
+    id: summary
+    attributes:
+      label: Short summary
+      description: One-line description of the problem
+      placeholder: Rendering crashes when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Exact steps, including seed and phenotype when possible
+      placeholder: |
+        1. Open app
+        2. Select...
+        3. Click...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      description: Release version or git commit hash
+      placeholder: v1.0.0 or 1a2b3c4
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, browser, Node.js version
+      placeholder: macOS 15, Chrome 122, Node 20
+    validations:
+      required: true

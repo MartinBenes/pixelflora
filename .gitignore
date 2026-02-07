@@ -1,3 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build and reports
+dist/
+coverage/
+playwright-report/
+test-results/
+
+# Logs
 firebase-debug.log
+*.log
+npm-debug.log*
+
+# Local/tooling
 .qodo/
+.playwright-mcp/
+.worktrees/
+.claude/
 .DS_Store
+.vscode/
+.idea/
+progress.md
