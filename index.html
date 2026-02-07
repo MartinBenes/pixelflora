@@ -292,8 +292,8 @@
     <!-- Výhledová plocha -->
     <div class="preview-area">
         <div class="canvas-container">
-            <!-- Canvas 80x120 (jemný upscale detailu) -->
-            <canvas id="plantCanvas" width="80" height="120" style="width: 320px; height: 480px;"></canvas>
+            <!-- Canvas 192x288 (HD pixel art, 3x detail) -->
+            <canvas id="plantCanvas" width="192" height="288" style="width: 384px; height: 576px;"></canvas>
             <div class="meta-info">
                 <span id="seed-display">Seed: --</span><br>
                 <span id="time-display">Render: 0ms | Frame: 0</span>
@@ -306,32 +306,38 @@
 /**
  * === PALETY A KONSTANTY ===
  */
+// Light source direction (normalized, from top-left)
+const LIGHT_DIR = { x: -0.6, y: -0.8 };
+
 const PALETTES = {
-    // Varianty barev pro stonek a listy
     foliage: {
-        green: { light: '#8bc34a', main: '#558b2f', dark: '#33691e' },
-        teal:  { light: '#80cbc4', main: '#00897b', dark: '#004d40' },
-        autumn: { light: '#ffcc80', main: '#ef6c00', dark: '#e65100' }, // Do rezava
-        dark:  { light: '#90a4ae', main: '#455a64', dark: '#263238' }  // Tmavě šedomodrá
+        green:  { highlight: '#a5d64d', light: '#7cb342', main: '#558b2f', dark: '#33691e', shadow: '#1b5e20' },
+        teal:   { highlight: '#b2dfdb', light: '#80cbc4', main: '#00897b', dark: '#004d40', shadow: '#00251a' },
+        autumn: { highlight: '#ffe0b2', light: '#ffcc80', main: '#ef6c00', dark: '#e65100', shadow: '#bf360c' },
+        dark:   { highlight: '#cfd8dc', light: '#90a4ae', main: '#546e7a', dark: '#37474f', shadow: '#263238' }
     },
-    pot: { light: '#d7ccc8', main: '#8d6e63', dark: '#5d4037', soil: '#3e2723' },
-    thorns: { main: '#3e2723', light: '#5d4037' }, // Tmavá
-    // Pole možných barev plodů - vybírá se podle seedu
+    pot: {
+        highlight: '#d7ccc8', light: '#a1887f', main: '#8d6e63',
+        dark: '#6d4c41', shadow: '#4e342e', rim: '#bcaaa4',
+        soil: '#3e2723', soilLight: '#4e342e', soilDark: '#2c1a12'
+    },
+    thorns: { highlight: '#6d4c41', main: '#4e342e', dark: '#3e2723' },
     fruits: [
-        { light: '#ff8a65', main: '#d84315', dark: '#bf360c' }, // Oranžová
-        { light: '#ba68c8', main: '#8e24aa', dark: '#4a148c' }, // Fialová
-        { light: '#ef5350', main: '#c62828', dark: '#b71c1c' }, // Červená
-        { light: '#4fc3f7', main: '#039be5', dark: '#01579b' }  // Modrá (fantasy)
+        { highlight: '#ffab91', light: '#ff8a65', main: '#e64a19', dark: '#bf360c' },
+        { highlight: '#ce93d8', light: '#ba68c8', main: '#8e24aa', dark: '#4a148c' },
+        { highlight: '#ef9a9a', light: '#ef5350', main: '#c62828', dark: '#b71c1c' },
+        { highlight: '#81d4fa', light: '#4fc3f7', main: '#039be5', dark: '#01579b' }
     ],
     flowers: {
-        red: { light: '#ff8a80', main: '#d32f2f', dark: '#b71c1c' },
-        blue: { light: '#82b1ff', main: '#2979ff', dark: '#0d47a1' },
-        purple: { light: '#ea80fc', main: '#aa00ff', dark: '#4a148c' },
-        white: { light: '#ffffff', main: '#e0e0e0', dark: '#9e9e9e' },
-        yellow: { light: '#ffffbf', main: '#fdd835', dark: '#f9a825' } 
+        red:    { highlight: '#ffcdd2', light: '#ef9a9a', main: '#e53935', dark: '#c62828', shadow: '#b71c1c' },
+        blue:   { highlight: '#bbdefb', light: '#90caf9', main: '#1e88e5', dark: '#1565c0', shadow: '#0d47a1' },
+        purple: { highlight: '#e1bee7', light: '#ce93d8', main: '#8e24aa', dark: '#6a1b9a', shadow: '#4a148c' },
+        white:  { highlight: '#ffffff', light: '#f5f5f5', main: '#e0e0e0', dark: '#bdbdbd', shadow: '#9e9e9e' },
+        yellow: { highlight: '#fff9c4', light: '#fff176', main: '#fdd835', dark: '#f9a825', shadow: '#f57f17' }
     },
-    stamens: { stem: '#fff59d', tip: '#f57f17' },
-    glow: '#ccff90' // Neon
+    stamens: { stem: '#fff9c4', tip: '#f57f17', tipLight: '#ff9800' },
+    sepals: { highlight: '#81c784', light: '#66bb6a', main: '#388e3c', dark: '#2e7d32' },
+    glow: { bright: '#ccff90', mid: '#b2ff59', dim: '#76ff03' }
 };
 
 /**
@@ -377,33 +383,27 @@ class Random {
 }
 
 /**
- * === DRAWING ENGINE (Pixel Art) ===
+ * === DRAWING ENGINE (HD Pixel Art) ===
  */
-const DETAIL_FACTOR = 1.25;
-const upInt = (value) => Math.max(1, Math.round(value * DETAIL_FACTOR));
-const CTX_WIDTH = upInt(64);
-const CTX_HEIGHT = upInt(96);
+const DETAIL_FACTOR = 3;
+const s = (value) => Math.max(1, Math.round(value * DETAIL_FACTOR));
+const CTX_WIDTH = s(64);   // 192
+const CTX_HEIGHT = s(96);  // 288
 
 function drawPixel(ctx, x, y, color) {
     ctx.fillStyle = color;
-    // ZAOKROUHLENÍ: Pro pixel-perfect animaci musíme pozice zaokrouhlovat na celá čísla,
-    // jinak by canvas dělal sub-pixel rendering (rozmazání).
     ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
 }
 
-// Bresenhamův algoritmus pro pixel-perfect čáru
 function drawLine(ctx, x0, y0, x1, y1, color) {
     x0 = Math.round(x0); y0 = Math.round(y0);
     x1 = Math.round(x1); y1 = Math.round(y1);
-    
     const dx = Math.abs(x1 - x0);
     const dy = Math.abs(y1 - y0);
     const sx = (x0 < x1) ? 1 : -1;
     const sy = (y0 < y1) ? 1 : -1;
     let err = dx - dy;
-
     ctx.fillStyle = color;
-
     while (true) {
         ctx.fillRect(x0, y0, 1, 1);
         if (x0 === x1 && y0 === y1) break;
@@ -413,91 +413,94 @@ function drawLine(ctx, x0, y0, x1, y1, color) {
     }
 }
 
-// Vyplněný kruh (pixelated)
 function drawCircle(ctx, xc, yc, r, color) {
     xc = Math.round(xc); yc = Math.round(yc); r = Math.floor(r);
     ctx.fillStyle = color;
     for (let y = -r; y <= r; y++) {
         for (let x = -r; x <= r; x++) {
-            if (x*x + y*y <= r*r) {
-                ctx.fillRect(xc + x, yc + y, 1, 1);
-            }
+            if (x * x + y * y <= r * r) ctx.fillRect(xc + x, yc + y, 1, 1);
         }
     }
 }
 
-// Vyplněná elipsa s podporou zoubkování (Serrated)
-function drawEllipseRotated(ctx, xc, yc, rx, ry, angle, color, isSerrated = false, pattern = 'plain', patternColor = null) {
-    const maxR = Math.max(rx, ry);
-    const cosA = Math.cos(angle);
-    const sinA = Math.sin(angle);
-    
-    ctx.fillStyle = color;
+// Shaded circle with directional lighting
+function drawShadedCircle(ctx, xc, yc, r, palette) {
+    xc = Math.round(xc); yc = Math.round(yc); r = Math.floor(r);
+    for (let y = -r; y <= r; y++) {
+        for (let x = -r; x <= r; x++) {
+            if (x * x + y * y > r * r) continue;
+            const nx = x / r, ny = y / r;
+            const dot = -(nx * LIGHT_DIR.x + ny * LIGHT_DIR.y);
+            const d = (Math.abs(xc + x) + Math.abs(yc + y)) % 2 === 0;
+            let color = shadeColor(dot, d, palette);
+            ctx.fillStyle = color;
+            ctx.fillRect(xc + x, yc + y, 1, 1);
+        }
+    }
+}
 
-    // Iterujeme přes bounding box
+// Shade helper: maps light dot product to palette color
+function shadeColor(dot, d, palette) {
+    return palette.main;
+}
+
+// Shaded rotated ellipse with directional lighting, serration & patterns
+function drawShadedEllipse(ctx, xc, yc, rx, ry, angle, palette, options = {}) {
+    const { isSerrated = false, pattern = 'plain', patternColor = null, outline = false } = options;
+    const maxR = Math.max(rx, ry) + 1;
+    const cosA = Math.cos(angle), sinA = Math.sin(angle);
     for (let x = -maxR; x <= maxR; x++) {
         for (let y = -maxR; y <= maxR; y++) {
-            // Rotace bodu zpět do lokálního systému elipsy
             const dx = x * cosA + y * sinA;
             const dy = y * cosA - x * sinA;
-            
-            // Základní rovnice elipsy
-            let dist = (dx*dx)/(rx*rx) + (dy*dy)/(ry*ry);
-
-            // Zoubkování (Serration) logic
+            let dist = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry);
             if (isSerrated) {
-                // Úhel v rámci elipsy
                 const theta = Math.atan2(dy, dx);
-                // Modulace poloměru sinusovkou (dělá zuby)
-                const serration = 1.0 - 0.25 * Math.abs(Math.sin(theta * 5)); // 5 zubů na stranu
-                // Pokud je bod uvnitř "zubaté" hranice
-                if (dist <= serration) {
-                    drawPixelWithPattern(ctx, xc+x, yc+y, color, pattern, patternColor, x, y);
-                }
+                if (dist > 1.0 - 0.18 * Math.abs(Math.sin(theta * 7))) continue;
             } else {
-                // Hladký okraj
-                if (dist <= 1) {
-                    drawPixelWithPattern(ctx, xc+x, yc+y, color, pattern, patternColor, x, y);
-                }
+                if (dist > 1) continue;
             }
+            if (outline && dist > 0.85) {
+                ctx.fillStyle = palette.shadow || palette.dark;
+                ctx.fillRect(Math.round(xc + x), Math.round(yc + y), 1, 1);
+                continue;
+            }
+            const nx = dx / rx, ny = dy / ry;
+            const dot = -(nx * LIGHT_DIR.x + ny * LIGHT_DIR.y);
+            const d = (Math.abs(Math.round(xc + x)) + Math.abs(Math.round(yc + y))) % 2 === 0;
+            let color = shadeColor(dot, d, palette);
+            if (pattern === 'stripes' && Math.abs(Math.round(dx)) % 4 < 2)
+                color = patternColor || palette.light;
+            else if (pattern === 'dots' && Math.round(dx * dx + dy * dy) % 11 === 0)
+                color = patternColor || palette.light;
+            ctx.fillStyle = color;
+            ctx.fillRect(Math.round(xc + x), Math.round(yc + y), 1, 1);
         }
     }
 }
 
-// Vyplněný kosočtverec (pro špičaté lístky)
-function drawRhombusRotated(ctx, xc, yc, rx, ry, angle, color, pattern = 'plain', patternColor = null) {
-    const maxR = Math.max(rx, ry);
-    const cosA = Math.cos(angle);
-    const sinA = Math.sin(angle);
-    
-    ctx.fillStyle = color;
-
+// Shaded rhombus (pointed petals/leaves)
+function drawShadedRhombus(ctx, xc, yc, rx, ry, angle, palette, options = {}) {
+    const { pattern = 'plain', patternColor = null } = options;
+    const maxR = Math.max(rx, ry) + 1;
+    const cosA = Math.cos(angle), sinA = Math.sin(angle);
     for (let x = -maxR; x <= maxR; x++) {
         for (let y = -maxR; y <= maxR; y++) {
             const dx = x * cosA + y * sinA;
             const dy = y * cosA - x * sinA;
-            
-            if (Math.abs(dx/rx) + Math.abs(dy/ry) <= 1) {
-                drawPixelWithPattern(ctx, xc+x, yc+y, color, pattern, patternColor, x, y);
-            }
+            if (Math.abs(dx / rx) + Math.abs(dy / ry) > 1) continue;
+            const nx = dx / rx, ny = dy / ry;
+            const dot = -(nx * LIGHT_DIR.x + ny * LIGHT_DIR.y);
+            const d = (Math.abs(Math.round(xc + x)) + Math.abs(Math.round(yc + y))) % 2 === 0;
+            let color = shadeColor(dot, d, palette);
+            if (pattern === 'stripes' && Math.abs(Math.round(dx)) % 4 < 2)
+                color = patternColor || palette.light;
+            else if (pattern === 'dots' && Math.round(dx * dx + dy * dy) % 11 === 0)
+                color = patternColor || palette.light;
+            ctx.fillStyle = color;
+            ctx.fillRect(Math.round(xc + x), Math.round(yc + y), 1, 1);
         }
     }
-}
-
-// Pomocná funkce pro vzory na lístcích
-function drawPixelWithPattern(ctx, x, y, baseColor, pattern, patternColor, localX, localY) {
-    let finalColor = baseColor;
-
-    if (pattern === 'stripes') {
-        // Pruhy každé 2 pixely
-        if (Math.abs(localX) % 3 === 0) finalColor = patternColor;
-    } else if (pattern === 'dots') {
-        // Tečky (šachovnice nebo náhodněji)
-        if ((localX*localX + localY*localY) % 7 === 0) finalColor = patternColor;
-    }
-
-    ctx.fillStyle = finalColor;
-    ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
 }
 
 /**
@@ -507,150 +510,120 @@ function drawPixelWithPattern(ctx, x, y, baseColor, pattern, patternColor, local
 function generatePlant(canvas, phenotype, seedStr, frame = 0) {
     const startTime = performance.now();
     const ctx = canvas.getContext('2d');
-    
-    // 1. Reset
     ctx.clearRect(0, 0, CTX_WIDTH, CTX_HEIGHT);
-    
-    // Globální data rostliny pro layers
-    const plantData = {
-        stemNodes: [], // {x, y, angle}
-        topX: 0,
-        topY: 0
-    };
 
-    // VÝPOČET VĚTRU (PIXEL-ART ANIMACE)
-    // Místo float sinusovky používáme celočíselný lookup table (LUT).
-    // Sekvence 4 snímků: Střed(0) -> Vpravo(1) -> Střed(0) -> Vlevo(-1).
-    // To vytváří jemné, "zubaté" pohupování bez interpolace.
+    const plantData = { stemNodes: [], topX: 0, topY: 0 };
     const windPattern = [0, 1, 0, -1];
-    const windForceInt = windPattern[frame % 4]; 
+    const windForceInt = windPattern[frame % 4];
 
-    // --- VRSTVA 1: KVĚTINÁČ (Statický) ---
     drawPot(ctx, new Random(seedStr + "_pot"));
-
-    // --- VRSTVA 2: STONEK ---
     drawStem(ctx, new Random(seedStr + "_stem"), phenotype, plantData, windForceInt);
-
-    // --- VRSTVA 2.5: ÚPONKY ---
-    if (phenotype.stem === 'vine') {
-         drawTendrils(ctx, new Random(seedStr + "_tendrils"), phenotype, plantData);
-    }
-
-    // --- VRSTVA 3: LISTY ---
+    if (phenotype.stem === 'vine')
+        drawTendrils(ctx, new Random(seedStr + "_tendrils"), phenotype, plantData);
     drawLeaves(ctx, new Random(seedStr + "_leaves"), phenotype, plantData, windForceInt);
-
-    // --- VRSTVA 4: TRNY ---
-    if (phenotype.thorns) {
+    if (phenotype.thorns)
         drawThorns(ctx, new Random(seedStr + "_thorns"), plantData);
-    }
-
-    // --- VRSTVA 5: PLODY ---
-    if (phenotype.fruit) {
+    if (phenotype.fruit)
         drawFruits(ctx, new Random(seedStr + "_fruit"), phenotype, plantData);
-    }
-
-    // --- VRSTVA 6: KVĚT ---
     drawFlower(ctx, new Random(seedStr + "_flower"), phenotype, plantData, windForceInt);
-
-    // --- VRSTVA 7: GLOW ---
-    if (phenotype.glow) {
+    if (phenotype.glow)
         drawGlow(ctx, new Random(seedStr + "_glow"), plantData);
-    }
 
-    const endTime = performance.now();
-    return (endTime - startTime).toFixed(2);
+    return (performance.now() - startTime).toFixed(2);
 }
 
-// --- Implementace vrstev ---
-
+// --- VRSTVA 1: KVĚTINÁČ (Shaded terracotta) ---
 function drawPot(ctx, rng) {
     const cx = CTX_WIDTH / 2;
-    const yBottom = CTX_HEIGHT - upInt(2);
-    const yTop = CTX_HEIGHT - upInt(10);
-    const widthTop = upInt(14);
-    const widthBottom = upInt(10);
+    const potHeight = s(12);
+    const yBottom = CTX_HEIGHT - s(3);
+    const yTop = yBottom - potHeight;
+    const halfTop = s(18) / 2;
+    const halfBot = s(12) / 2;
+    const rimH = s(2);
+    const rimW = halfTop + s(1);
 
+    // Main body
     ctx.fillStyle = PALETTES.pot.main;
-    const halfTop = widthTop / 2;
-    const halfBot = widthBottom / 2;
-    
-    const steps = yBottom - yTop;
-    for (let i = 0; i <= steps; i++) {
-        const t = i / steps;
-        const currentWidth = halfTop - (t * (halfTop - halfBot));
-        const y = yTop + i;
-        ctx.fillRect(Math.round(cx - currentWidth), y, Math.round(currentWidth * 2), 1);
+    for (let i = 0; i <= potHeight; i++) {
+        const t = i / potHeight;
+        const hw = halfTop - (t * (halfTop - halfBot));
+        for (let dx = -hw; dx < hw; dx++) {
+            ctx.fillRect(Math.round(cx + dx), yTop + i, 1, 1);
+        }
     }
-
-    drawLine(ctx, cx + halfBot - upInt(1), yBottom, cx + halfTop - upInt(1), yTop, PALETTES.pot.dark);
-    
-    ctx.fillStyle = PALETTES.pot.dark;
-    ctx.fillRect(Math.round(cx - halfTop - upInt(1)), yTop - upInt(1), widthTop + upInt(2), upInt(2));
-    
-    drawEllipseRotated(ctx, cx, yTop, halfTop - upInt(1), upInt(2), 0, PALETTES.pot.soil);
+    // Soil visible inside pot (thin strip just below rim)
+    ctx.fillStyle = PALETTES.pot.soil;
+    for (let row = 0; row < s(1); row++) {
+        const soilHw = halfTop - s(1);
+        for (let dx = -soilHw; dx < soilHw; dx++) {
+            ctx.fillRect(Math.round(cx + dx), yTop + row, 1, 1);
+        }
+    }
+    // Rim (on top of everything)
+    for (let ry = 0; ry < rimH; ry++) {
+        ctx.fillStyle = ry === 0 ? PALETTES.pot.rim : PALETTES.pot.main;
+        for (let dx = -rimW; dx < rimW; dx++) {
+            ctx.fillRect(Math.round(cx + dx), yTop - ry, 1, 1);
+        }
+    }
 }
 
+// --- VRSTVA 2: STONEK (Cylindrical shading, internode system) ---
 function drawStem(ctx, rng, phenotype, data, windForceInt) {
     const startX = CTX_WIDTH / 2;
-    const startY = CTX_HEIGHT - upInt(14);
-    const endY = upInt(20);
-    
-    let currentX = startX;
+    const startY = CTX_HEIGHT - s(16);
+    const endY = s(28);
     const isVine = phenotype.stem === 'vine';
     const isThick = phenotype.stemThickness === 'thick';
     const isHairy = phenotype.stemTexture === 'hairy';
-
     const palette = PALETTES.foliage[phenotype.foliageColor] || PALETTES.foliage.green;
-    
-    const curveFreq = rng.float(0.1, 0.2) / DETAIL_FACTOR;
-    const curveAmp = isVine ? rng.range(upInt(6), upInt(12)) : rng.range(upInt(1), upInt(3));
+
+    const curveFreq = rng.float(0.03, 0.06);
+    const curveAmp = isVine ? rng.range(s(6), s(10)) : rng.range(s(1), s(3));
     const phase = rng.float(0, Math.PI * 2);
-    
-    const nodeCount = rng.range(upInt(3), upInt(5));
+    const nodeCount = rng.range(4, 7);  // Count - NOT scaled
     const nodeInterval = (startY - endY) / nodeCount;
-    let nextNodeY = startY - nodeInterval;
+    const baseHalf = isThick ? s(4) : s(2);
+    const tipHalf = isThick ? s(2) : s(1);
+    const maxWindSway = isVine ? s(2) : s(1);
 
-    // Wind efekt: max výchylka nahoře (1px pro normal, 2px pro vine)
-    // Tímto zajistíme, že pohyb je opravdu jen o 1-2 pixely, velmi subtilní.
-    const maxWindSway = isVine ? upInt(2) : upInt(1);
+    // Pre-calculate node positions
+    const nodeYs = [];
+    for (let i = 1; i <= nodeCount; i++) nodeYs.push(Math.round(startY - i * nodeInterval));
 
+    let currentX = startX, nextNodeIdx = 0;
     for (let y = startY; y >= endY; y--) {
-        const progress = 1 - (y - endY) / (startY - endY); // 0 dole, 1 nahoře
+        const progress = 1 - (y - endY) / (startY - endY);
         const wave = Math.sin((y * curveFreq) + phase);
         const currentAmp = isVine ? (curveAmp * Math.sqrt(progress)) : (curveAmp * progress);
-        
-        // Aplikace větru: Lineární nárůst s výškou a zaokrouhlení pro pixel skok
-        // windForceInt je -1, 0, nebo 1.
-        const windOffset = Math.round(windForceInt * maxWindSway * progress); 
-
+        const windOffset = Math.round(windForceInt * maxWindSway * progress);
         const x = startX + (wave * currentAmp) + windOffset;
-        
-        // Kreslení stonku podle tloušťky
-        if (isThick) {
-            drawPixel(ctx, x - upInt(2), y, palette.dark);
-            drawPixel(ctx, x - upInt(1), y, palette.dark);
-            drawPixel(ctx, x, y, palette.main);
-            drawPixel(ctx, x + upInt(1), y, palette.main);
-            drawPixel(ctx, x + upInt(2), y, palette.light);
-        } else {
-            drawPixel(ctx, x - upInt(1), y, palette.dark);
-            drawPixel(ctx, x, y, palette.main);
-            drawPixel(ctx, x + upInt(1), y, palette.light);
+        const halfWidth = Math.round(baseHalf + (tipHalf - baseHalf) * progress);
+        const isNearNode = nodeYs.some(ny => Math.abs(ny - y) <= 1);
+        const hw = isNearNode ? halfWidth + 1 : halfWidth;
+
+        for (let dx = -hw; dx <= hw; dx++) {
+            const nx = hw > 0 ? dx / hw : 0;
+            const dot = -nx * LIGHT_DIR.x;
+            const d = (Math.abs(Math.round(x + dx)) + Math.abs(y)) % 2 === 0;
+            let color;
+            if (Math.abs(dx) === hw) color = palette.dark;
+            else color = palette.main;
+            ctx.fillStyle = color;
+            ctx.fillRect(Math.round(x + dx), y, 1, 1);
         }
 
-        // Textura: Chlupatý stonek
-        if (isHairy) {
-            if (rng.bool(0.2)) drawPixel(ctx, x - (isThick ? upInt(3) : upInt(2)), y, palette.light);
-            if (rng.bool(0.2)) drawPixel(ctx, x + (isThick ? upInt(3) : upInt(2)), y, palette.dark);
+        if (isHairy && rng.bool(0.12)) {
+            const hs = rng.bool(0.5) ? -1 : 1;
+            for (let h = 1; h <= rng.range(2, 4); h++)
+                drawPixel(ctx, x + (hw + h) * hs, y - h, palette.light);
         }
 
-        if (y <= nextNodeY && data.stemNodes.length < nodeCount) {
-            // U uzlů také aplikujeme windOffset, aby listy neplavaly mimo stonek
-            const prevX = startX + (Math.sin(((y+1) * curveFreq) + phase) * currentAmp) + windOffset;
-            const dx = x - prevX;
-            const angle = Math.atan2(dx, -1); 
-            data.stemNodes.push({ x: x, y: y, angle: angle });
-            nextNodeY -= nodeInterval;
+        if (nextNodeIdx < nodeYs.length && y <= nodeYs[nextNodeIdx]) {
+            const prevX = startX + (Math.sin(((y + 1) * curveFreq) + phase) * currentAmp) + windOffset;
+            data.stemNodes.push({ x, y, angle: Math.atan2(-1, x - prevX), halfWidth: hw });
+            nextNodeIdx++;
         }
         currentX = x;
     }
@@ -658,66 +631,116 @@ function drawStem(ctx, rng, phenotype, data, windForceInt) {
     data.topY = endY;
 }
 
+// --- VRSTVA 3: LISTY (Phyllotaxis + venation) ---
 function drawLeaves(ctx, rng, phenotype, data, windForceInt) {
     const isWide = phenotype.leaf === 'wide';
     const isSerrated = phenotype.leafEdge === 'serrated';
     const palette = PALETTES.foliage[phenotype.foliageColor] || PALETTES.foliage.green;
 
     let minLen, maxLen;
-    if (phenotype.leafSize === 'small') { minLen = upInt(4); maxLen = upInt(6); }
-    else if (phenotype.leafSize === 'large') { minLen = upInt(9); maxLen = upInt(14); }
-    else { minLen = upInt(6); maxLen = upInt(10); }
+    if (phenotype.leafSize === 'small') { minLen = s(8); maxLen = s(12); }
+    else if (phenotype.leafSize === 'large') { minLen = s(14); maxLen = s(20); }
+    else { minLen = s(10); maxLen = s(15); }
 
-    data.stemNodes.forEach((node, index) => {
-        const side = (index % 2 === 0) ? -1 : 1;
-        const stemNormal = node.angle + (side * (Math.PI / 2.5));
-        
-        // Listy se také mírně natáčejí ve větru, ale jen o malý kousek
-        const windRotation = windForceInt * 0.05; 
-        const leafAngle = stemNormal + rng.float(-0.2, 0.2) + windRotation;
+    const nodeCount = data.stemNodes.length;
+    if (nodeCount < 2) return;
+
+    // (c) Fixed 3-4 leaves, evenly spaced
+    const leafCount = nodeCount >= 6 ? 4 : 3;
+
+    // (a) Avoid top 45% of stem (flower zone) and bottom 10%
+    const usable = data.stemNodes
+        .map((node, i) => ({ node, i }))
+        .filter(({ i }) => { const hr = i / nodeCount; return hr >= 0.1 && hr <= 0.55; });
+    if (usable.length === 0) return;
+
+    const step = Math.max(1, Math.floor(usable.length / leafCount));
+    const picked = [];
+    for (let k = 0; k < leafCount && k * step < usable.length; k++)
+        picked.push(usable[k * step]);
+
+    picked.forEach(({ node }, idx) => {
+        // (b) Clean alternating sides, roughly horizontal with slight droop
+        const side = (idx % 2 === 0) ? 1 : -1;
+        const droop = rng.float(0.08, 0.35);
+        const jitter = rng.float(-0.1, 0.1);
+        const windRot = windForceInt * 0.04;
+        const leafAngle = (side > 0)
+            ? droop + jitter + windRot          // right, slightly down
+            : Math.PI - droop + jitter + windRot; // left, slightly down
 
         const len = rng.range(minLen, maxLen);
-        const width = isWide ? rng.range(upInt(4), upInt(5)) : rng.range(upInt(2), upInt(3));
+        const width = isWide ? rng.range(s(5), s(8)) : rng.range(s(3), s(5));
 
-        const cx = node.x + (Math.cos(leafAngle) * (len/2));
-        const cy = node.y + (Math.sin(leafAngle) * (len/2));
+        // Petiole (leaf stalk)
+        const petLen = Math.round(len * 0.2);
+        const petEndX = node.x + Math.cos(leafAngle) * petLen;
+        const petEndY = node.y + Math.sin(leafAngle) * petLen;
+        drawLine(ctx, node.x, node.y, petEndX, petEndY, palette.dark);
 
-        drawEllipseRotated(ctx, cx, cy, len/2, width/2, leafAngle, palette.main, isSerrated);
-        
-        const tx = node.x + (Math.cos(leafAngle) * len);
-        const ty = node.y + (Math.sin(leafAngle) * len);
-        drawLine(ctx, node.x, node.y, tx, ty, palette.dark);
+        // Leaf blade (shaded)
+        const bladeCx = petEndX + Math.cos(leafAngle) * (len / 2);
+        const bladeCy = petEndY + Math.sin(leafAngle) * (len / 2);
+        drawShadedEllipse(ctx, bladeCx, bladeCy, len / 2, width / 2, leafAngle, palette, { isSerrated });
+
+        // Central vein (midrib)
+        const tipX = petEndX + Math.cos(leafAngle) * len;
+        const tipY = petEndY + Math.sin(leafAngle) * len;
+        drawLine(ctx, petEndX, petEndY, tipX, tipY, palette.dark);
+
+        // Side veins
+        const veinCount = Math.max(2, Math.floor(len / s(5)));
+        for (let v = 1; v <= veinCount; v++) {
+            const t = v / (veinCount + 1);
+            const vbx = petEndX + Math.cos(leafAngle) * (len * t);
+            const vby = petEndY + Math.sin(leafAngle) * (len * t);
+            const vLen = (width / 2) * (1 - Math.abs(t - 0.5) * 1.5) * 0.7;
+            for (const vs of [-1, 1]) {
+                const vAngle = leafAngle + vs * (Math.PI / 3.5);
+                drawLine(ctx, vbx, vby, vbx + Math.cos(vAngle) * vLen, vby + Math.sin(vAngle) * vLen,
+                    palette.shadow || palette.dark);
+            }
+        }
     });
 }
 
 function drawTendrils(ctx, rng, phenotype, data) {
     const palette = PALETTES.foliage[phenotype.foliageColor] || PALETTES.foliage.green;
     data.stemNodes.forEach((node, index) => {
-        if (rng.bool(0.7)) { 
-             const side = (index % 2 === 0) ? 1 : -1; 
-             let tx = node.x;
-             let ty = node.y;
-             const length = rng.range(upInt(5), upInt(8));
-             ctx.fillStyle = palette.light; 
-             let angle = (side === 1) ? 0 : Math.PI;
-             for(let i=0; i<length; i++) {
-                 tx += Math.cos(angle);
-                 ty += Math.sin(angle); 
-                 angle += (side * 0.8); 
-                 ctx.fillRect(Math.round(tx), Math.round(ty), 1, 1);
-             }
+        if (rng.bool(0.65)) {
+            const side = (index % 2 === 0) ? 1 : -1;
+            let tx = node.x, ty = node.y;
+            const length = rng.range(s(5), s(10));
+            let angle = (side === 1) ? 0 : Math.PI;
+            for (let i = 0; i < length; i++) {
+                tx += Math.cos(angle); ty += Math.sin(angle);
+                angle += (side * 0.6);
+                ctx.fillStyle = i / length < 0.3 ? palette.main : palette.light;
+                ctx.fillRect(Math.round(tx), Math.round(ty), 1, 1);
+            }
+            // Coil at tip
+            for (let i = 0; i < s(3); i++) {
+                tx += Math.cos(angle) * 0.8; ty += Math.sin(angle) * 0.8;
+                angle += (side * 1.2);
+                ctx.fillStyle = palette.light;
+                ctx.fillRect(Math.round(tx), Math.round(ty), 1, 1);
+            }
         }
     });
 }
 
 function drawThorns(ctx, rng, data) {
     data.stemNodes.forEach((node, index) => {
-        const side = (index % 2 === 0) ? 1 : -1; 
-        const angle = node.angle + (side * Math.PI/2);
-        const len = rng.range(upInt(2), upInt(4));
+        const side = (index % 2 === 0) ? 1 : -1;
+        const angle = node.angle + (side * Math.PI / 2);
+        const len = rng.range(s(3), s(5));
         const tipX = node.x + Math.cos(angle) * len;
         const tipY = node.y + Math.sin(angle) * len;
         drawLine(ctx, node.x, node.y, tipX, tipY, PALETTES.thorns.main);
+        drawLine(ctx, node.x, node.y + 1,
+            node.x + Math.cos(angle) * (len * 0.6), node.y + 1 + Math.sin(angle) * (len * 0.6),
+            PALETTES.thorns.dark);
+        drawPixel(ctx, node.x + Math.cos(angle) * 2, node.y + Math.sin(angle) * 2 - 1, PALETTES.thorns.highlight);
     });
 }
 
@@ -727,111 +750,96 @@ function drawFruits(ctx, rng, phenotype, data) {
     const isOval = phenotype.fruitShape === 'oval';
 
     data.stemNodes.forEach(node => {
-        if (rng.bool(0.6)) { 
-            const r = rng.range(upInt(2), upInt(3));
-            const offsetX = rng.pick([-upInt(4), upInt(4)]);
-            const offsetY = rng.range(0, upInt(4));
-
-            drawLine(ctx, node.x, node.y, node.x + offsetX/2, node.y + offsetY, stemPalette.dark);
-            
-            const fx = node.x + offsetX;
-            const fy = node.y + offsetY + upInt(1);
-            
-            if (isOval) {
-                drawEllipseRotated(ctx, fx, fy, r, r * 1.5, 0, fruitPalette.main);
-            } else {
-                drawCircle(ctx, fx, fy, r, fruitPalette.main);
-            }
-            
-            drawPixel(ctx, fx + upInt(1), fy + upInt(1), fruitPalette.dark);
-            drawPixel(ctx, fx - upInt(1), fy - upInt(1), fruitPalette.light);
+        if (rng.bool(0.55)) {
+            const r = rng.range(s(2), s(4));
+            const offsetX = rng.pick([-s(5), s(5)]);
+            const offsetY = rng.range(s(1), s(5));
+            drawLine(ctx, node.x, node.y, node.x + offsetX * 0.6, node.y + offsetY * 0.7, stemPalette.dark);
+            const fx = node.x + offsetX, fy = node.y + offsetY + s(1);
+            if (isOval) drawShadedEllipse(ctx, fx, fy, r, Math.round(r * 1.4), 0, fruitPalette);
+            else drawShadedCircle(ctx, fx, fy, r, fruitPalette);
+            drawPixel(ctx, fx - 1, fy - 1, fruitPalette.highlight);
         }
     });
 }
 
+// --- VRSTVA 6: KVĚT (Sepals + shaded petals + detailed center) ---
 function drawFlower(ctx, rng, phenotype, data, windForceInt) {
-    const cx = data.topX;
-    const cy = data.topY;
+    const cx = data.topX, cy = data.topY;
     const isPointy = phenotype.flowerShape === 'pointy';
-    
-    let flowerScale = 1.0;
-    if (phenotype.flowerSize === 'small') flowerScale = 0.7;
-    if (phenotype.flowerSize === 'large') flowerScale = 1.3;
+    let flowerScale = 0.7;
+    if (phenotype.flowerSize === 'small') flowerScale = 0.5;
+    if (phenotype.flowerSize === 'large') flowerScale = 1.0;
 
-    const petalCount = rng.range(upInt(5), upInt(8));
-    const petalLen = rng.range(upInt(4), upInt(7)) * flowerScale;
-    const petalWidth = rng.range(upInt(2), upInt(4)) * flowerScale;
-    // Jemná rotace
-    const rotationOffset = rng.float(0, Math.PI) + (windForceInt * 0.05); 
+    const petalCount = rng.range(5, 8); // Count NOT scaled
+    const petalLen = Math.round(rng.range(s(8), s(14)) * flowerScale);
+    const petalWidth = Math.round(rng.range(s(4), s(7)) * flowerScale);
+    const rotOff = rng.float(0, Math.PI) + (windForceInt * 0.04);
 
+    // Petals
     for (let i = 0; i < petalCount; i++) {
-        const angle = rotationOffset + (i / petalCount) * Math.PI * 2;
-        const px = cx + Math.cos(angle) * (petalLen/1.5);
-        const py = cy + Math.sin(angle) * (petalLen/1.5);
-
+        const angle = rotOff + (i / petalCount) * Math.PI * 2;
+        const px = cx + Math.cos(angle) * (petalLen / 1.5);
+        const py = cy + Math.sin(angle) * (petalLen / 1.5);
         const colorKey = (i % 2 === 0) ? phenotype.flowerColor : phenotype.flowerColorSecondary;
         const pColor = PALETTES.flowers[colorKey];
-        
-        const pattern = phenotype.flowerPattern; 
-        const patternColor = pColor.light; 
-
-        if (isPointy) {
-            drawRhombusRotated(ctx, px, py, petalLen, petalWidth, angle, pColor.main, pattern, patternColor);
-        } else {
-            drawEllipseRotated(ctx, px, py, petalLen, petalWidth, angle, pColor.main, false, pattern, patternColor);
-        }
-        
-        const basePx = cx + Math.cos(angle) * upInt(1);
-        const basePy = cy + Math.sin(angle) * upInt(1);
-        drawPixel(ctx, basePx, basePy, pColor.dark);
+        const pattern = phenotype.flowerPattern;
+        const patternColor = pColor.highlight || pColor.light;
+        if (isPointy) drawShadedRhombus(ctx, px, py, petalLen, petalWidth, angle, pColor, { pattern, patternColor });
+        else drawShadedEllipse(ctx, px, py, petalLen, petalWidth, angle, pColor, { pattern, patternColor });
+        drawPixel(ctx, cx + Math.cos(angle) * s(2), cy + Math.sin(angle) * s(2), pColor.shadow || pColor.dark);
     }
 
+    // Center
+    const centerR = Math.max(s(3), Math.round(s(3) * flowerScale));
     if (phenotype.sex !== 'male') {
-        const centerColor = (phenotype.flowerColor === 'yellow') ? '#fb8c00' : '#fff59d';
-        const centerDark = (phenotype.flowerColor === 'yellow') ? '#e65100' : '#fbc02d';
-        drawCircle(ctx, cx, cy, upInt(2), centerColor);
-        drawPixel(ctx, cx, cy, centerDark); 
+        const cp = phenotype.flowerColor === 'yellow'
+            ? { highlight: '#ffcc80', light: '#fb8c00', main: '#ef6c00', dark: '#e65100' }
+            : { highlight: '#fffde7', light: '#fff9c4', main: '#fdd835', dark: '#f9a825' };
+        drawShadedCircle(ctx, cx, cy, centerR, cp);
+        drawPixel(ctx, cx, cy - 1, cp.dark);
+        drawPixel(ctx, cx, cy, '#5d4037');
     } else {
-        drawCircle(ctx, cx, cy, upInt(1), '#8d6e63');
+        drawShadedCircle(ctx, cx, cy, Math.max(s(2), centerR - 2),
+            { highlight: '#a1887f', light: '#8d6e63', main: '#6d4c41', dark: '#4e342e' });
     }
 
+    // Stamens
     if (phenotype.sex !== 'female') {
-        const stamenCount = rng.range(upInt(3), upInt(6));
-        const stamenStemColor = (phenotype.flowerColor === 'yellow') ? '#e65100' : PALETTES.stamens.stem;
+        const stamenCount = rng.range(4, 7); // Count NOT scaled
         for (let i = 0; i < stamenCount; i++) {
-            const angle = (i / stamenCount) * Math.PI * 2 + rotationOffset + (Math.PI/petalCount); 
-            const len = rng.range(upInt(3), upInt(6));
-            const sx = cx + Math.cos(angle) * len;
-            const sy = cy + Math.sin(angle) * len;
-            drawPixel(ctx, cx + Math.cos(angle)*(len/2), cy + Math.sin(angle)*(len/2), stamenStemColor);
-            drawPixel(ctx, sx, sy, PALETTES.stamens.tip);
+            const angle = (i / stamenCount) * Math.PI * 2 + rotOff + (Math.PI / petalCount);
+            const len = Math.round(rng.range(s(5), s(9)) * flowerScale);
+            const sx = cx + Math.cos(angle) * len, sy = cy + Math.sin(angle) * len;
+            drawLine(ctx, cx + Math.cos(angle) * (centerR + 1), cy + Math.sin(angle) * (centerR + 1),
+                sx, sy, PALETTES.stamens.stem);
+            drawShadedCircle(ctx, sx, sy, Math.max(1, s(1)),
+                { highlight: '#ffcc80', light: PALETTES.stamens.tipLight, main: PALETTES.stamens.tip, dark: '#e65100' });
         }
     }
 }
 
 function drawGlow(ctx, rng, data) {
-    const flowerParticles = rng.range(upInt(8), upInt(12));
-    for(let i=0; i<flowerParticles; i++) {
+    const colors = PALETTES.glow;
+    for (let i = 0; i < rng.range(12, 20); i++) {
         const angle = rng.float(0, Math.PI * 2);
-        const dist = rng.range(upInt(6), upInt(14));
-        const x = data.topX + Math.cos(angle) * dist;
-        const y = data.topY + Math.sin(angle) * dist;
-        
-        if(x > 0 && x < CTX_WIDTH && y > 0 && y < CTX_HEIGHT) {
-            ctx.fillStyle = PALETTES.glow;
-            ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
+        const dist = rng.range(s(6), s(16));
+        const x = Math.round(data.topX + Math.cos(angle) * dist);
+        const y = Math.round(data.topY + Math.sin(angle) * dist);
+        if (x > 0 && x < CTX_WIDTH && y > 0 && y < CTX_HEIGHT) {
+            ctx.fillStyle = rng.pick([colors.bright, colors.mid, colors.dim]);
+            ctx.fillRect(x, y, 1, 1);
+            if (rng.bool(0.3)) { ctx.fillRect(x + 1, y, 1, 1); ctx.fillRect(x, y + 1, 1, 1); }
         }
     }
     data.stemNodes.forEach(node => {
-        if(rng.bool(0.4)) { 
-             const ox = rng.pick([-upInt(1), upInt(1)]) * rng.range(upInt(3), upInt(6));
-             const oy = rng.range(-upInt(3), upInt(3));
-             const gx = Math.round(node.x + ox);
-             const gy = Math.round(node.y + oy);
-             if(gx > 0 && gx < CTX_WIDTH && gy > 0 && gy < CTX_HEIGHT) {
-                 ctx.fillStyle = PALETTES.glow;
-                 ctx.fillRect(gx, gy, 1, 1);
-             }
+        if (rng.bool(0.45)) {
+            const gx = Math.round(node.x + rng.pick([-1, 1]) * rng.range(s(3), s(7)));
+            const gy = Math.round(node.y + rng.range(-s(3), s(3)));
+            if (gx > 0 && gx < CTX_WIDTH && gy > 0 && gy < CTX_HEIGHT) {
+                ctx.fillStyle = rng.pick([colors.bright, colors.mid, colors.dim]);
+                ctx.fillRect(gx, gy, 1, 1);
+            }
         }
     });
 }
